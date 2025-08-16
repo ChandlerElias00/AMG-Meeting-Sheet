@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Amigo Brainerd — 2024 vs 2025 Partner Brief</title>
+<link rel="icon" href="data:;base64,=">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root{ --ink:#e5e7eb; --ink-soft:#a3b0c2; --panel:rgba(15,23,42,.78); --line:rgb(51,65,85); }
+  body{ background:#0b1220; color:var(--ink); }
+  .card{ background:var(--panel); border-radius:1rem; padding:1rem 1.25rem; box-shadow:0 1px 2px rgba(0,0,0,.3); }
+  .kpi{ font-size:1.6rem; font-weight:800; line-height:1.1; font-variant-numeric:tabular-nums; }
+  .pill{ border:1px solid var(--line); padding:.2rem .5rem; border-radius:999px; font-size:.75rem; white-space:nowrap; }
+  .btn{ padding:.5rem .8rem; border:1px solid var(--line); border-radius:.6rem; background:transparent; color:#e2e8f0; font-size:.9rem; white-space:nowrap;}
+  .btn:hover{ background:rgba(148,163,184,.08); border-color:rgb(71,85,105); }
+  .btn.primary{ border-color:rgb(37,99,235); }
+  .btn.primary:hover{ background:rgba(37,99,235,.15); }
+  .soft{ color:var(--ink-soft); }
+  .mono{ font-variant-numeric:tabular-nums; }
+  .grid-3{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1rem; }
+  .grid-2{ display:grid; grid-template-columns:1.1fr .9fr; gap:1rem; }
+  .grid-4{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:1rem; }
+  @media (max-width:1200px){ .grid-2,.grid-3,.grid-4{ grid-template-columns:1fr; } }
+  table{ width:100%; border-collapse:separate; border-spacing:0; }
+  th,td{ padding:.5rem .6rem; border-bottom:1px solid rgba(148,163,184,.2); }
+  th{ text-align:left; color:#cbd5e1; background:rgba(15,23,42,.95); position:sticky; top:0; z-index:1; }
+  td.text-right{ text-align:right; }
+  .pos{ color:#86efac; } .neg{ color:#fca5a5; }
+  @media print{
+    .noprint{ display:none !important; }
+    body{ background:#fff; color:#111827; }
+    .card{ background:#fff; border:1px solid #e5e7eb; box-shadow:none; }
+  }
+</style>
+</head>
+<body class="min-h-screen">
+<div class="max-w-7xl mx-auto p-6 space-y-6">
+
+  <!-- Header -->
+  <header class="flex flex-wrap items-start justify-between gap-3">
+    <div>
+      <h1 class="text-3xl font-bold">Amigo Brainerd — Partner Brief</h1>
+      <p class="soft">Side-by-side sales (2024 vs 2025), deltas, and profit projections in one glance.</p>
+    </div>
+    <div class="noprint flex flex-wrap gap-2">
+      <button id="btnTemplate" class="btn">Download CSV template</button>
+      <label class="btn" for="fileCsv" style="cursor:pointer;">Upload CSV</label>
+      <input id="fileCsv" type="file" accept=".csv,text/csv" class="hidden">
+      <button class="btn primary" onclick="window.print()">Print</button>
+    </div>
+  </header>
+
+  <!-- KPI row -->
+  <section class="grid-4">
+    <div class="card">
+      <div class="soft text-sm">YTD Sales 2025</div>
+      <div id="kYtd25" class="kpi mono">—</div>
+      <div class="soft text-xs"><span id="ytdMonths">Jan–Dec</span></div>
+    </div>
+    <div class="card">
+      <div class="soft text-sm">YTD Δ vs 2024</div>
+      <div id="kYtdDelta" class="kpi mono">—</div>
+      <div id="kYtdPct" class="soft text-xs">—</div>
+    </div>
+    <div class="card">
+      <div class="soft text-sm">Yearly Δ (projected @ same pace)</div>
+      <div id="kYearDelta" class="kpi mono">—</div>
+      <div class="soft text-xs">From provided sheet projection</div>
+    </div>
+    <div class="card">
+      <div class="soft text-sm">Cost / Day (avg)</div>
+      <div id="kCostPerDay" class="kpi mono">—</div>
+      <div class="soft text-xs">As reported</div>
+    </div>
+  </section>
+
+  <!-- Charts row -->
+  <section class="grid-2">
+    <div class="card">
+      <h2 class="text-xl font-semibold mb-2">Sales — 2024 vs 2025</h2>
+      <canvas id="lineSales" height="130"></canvas>
+      <div class="soft text-xs mt-2">Monthly totals, side-by-side.</div>
+    </div>
+    <div class="card">
+      <h2 class="text-xl font-semibold mb-2">Monthly Δ vs 2024</h2>
+      <canvas id="barDelta" height="130"></canvas>
+      <div class="soft text-xs mt-2">Bars show 2025 − 2024 by month (labels include % change).</div>
+    </div>
+  </section>
+
+  <!-- Profit projections -->
+  <section class="card">
+    <div class="flex flex-wrap items-end gap-3">
+      <h2 class="text-xl font-semibold">Profit Projection</h2>
+      <div>
+        <label class="soft text-sm">Method</label>
+        <select id="selMethod">
+          <option value="current">Based on Current Profit % (reported)</option>
+          <option value="projected">Based on Projected Sales − Expenses (reported)</option>
+        </select>
+      </div>
+      <label class="soft text-sm flex items-center gap-2">
+        <input id="chkSavings" type="checkbox"> Add projected savings +$15,000 (Jul–Dec)
+      </label>
+      <span id="projNote" class="pill soft">—</span>
+    </div>
+    <div class="grid-2 mt-3">
+      <div>
+        <canvas id="lineProfit" height="130"></canvas>
+      </div>
+      <div>
+        <canvas id="barExpense" height="130"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- Table -->
+  <section class="card">
+    <h2 class="text-xl font-semibold mb-2">Detail (click headers to sort)</h2>
+    <div class="overflow-auto" style="max-height:360px;">
+      <table id="tbl">
+        <thead>
+          <tr>
+            <th data-sort="month">Month</th>
+            <th data-sort="s24" class="text-right">Sales 2024</th>
+            <th data-sort="s25" class="text-right">Sales 2025</th>
+            <th data-sort="delta" class="text-right">Δ (25−24)</th>
+            <th data-sort="pct" class="text-right">% Δ</th>
+            <th data-sort="exp" class="text-right">Expenses</th>
+            <th data-sort="p1" class="text-right">Profit (Current %)</th>
+            <th data-sort="p2" class="text-right">Profit (Proj S−E)</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer class="soft text-xs">
+    Source: Amigo Brainerd 2024–2025 comparison workbook (sales, expenses, projections). Figures below pre-loaded from your sheet; upload a CSV to override live.
+  </footer>
+</div>
+
+<script>
+/* ===== Helpers ===== */
+const $ = id=>document.getElementById(id);
+const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const money = (n,d=0)=>Number(n||0).toLocaleString(undefined,{style:'currency',currency:'USD',maximumFractionDigits:d});
+const sign = n => (n>=0?'+':'') + money(n);
+
+/* ===== Seed data (from the sheet you shared) ===== */
+let data = {
+  s2024: [168076.20,177540.00,189646.60,175948.70,181556.10,187181.10,180416.70,179365.60,154514.00,161960.40,158570.30,166856.40],
+  s2025: [144619.72,149778.60,172845.74,159293.52,174489.45,156133.29,148160.23,157258.61,135469.99,141998.62,139026.35,146291.18],
+  expenses: [144983.19,148265.09,156638.86,163805.33,169739.06,148822.77,159760.13,159760.13,154606.58,159760.13,154606.58,159760.13],
+  profitCurrentPct: [-363.47,1513.51,16206.88,-4511.81,4750.39,7310.52,3958.24,4201.31,3619.20,3793.62,3714.22,3908.30],
+  profitProjectedSE: [-363.47,1513.51,16206.88,-4511.81,4750.39,7310.52,-11599.90,-2501.52,-19136.58,-17761.51,-15580.23,-13468.95],
+  addSavingsJulDec: 15000 // when toggle is on, add to Jul–Dec profits
+};
+
+/* ===== Derived ===== */
+function monthlyDelta(){ return data.s2025.map((v,i)=> v - (data.s2024[i]||0)); }
+function monthlyPct(){ return data.s2025.map((v,i)=>{ const b=data.s2024[i]||0; return b? ((v-b)/b)*100 : 0; }); }
+function sum(arr){ return arr.reduce((a,b)=>a+Number(b||0),0); }
+function ytdLabel(){ return 'Jan–Dec'; } // using full 12 months from the sheet
+
+/* ===== Charts ===== */
+let lineSales, barDelta, lineProfit, barExpense;
+
+function drawCharts(){
+  const ctx1 = $('lineSales').getContext('2d');
+  const ctx2 = $('barDelta').getContext('2d');
+  const ctx3 = $('lineProfit').getContext('2d');
+  const ctx4 = $('barExpense').getContext('2d');
+
+  if(lineSales) lineSales.destroy();
+  if(barDelta) barDelta.destroy();
+  if(lineProfit) lineProfit.destroy();
+  if(barExpense) barExpense.destroy();
+
+  lineSales = new Chart(ctx1,{
+    type:'line',
+    data:{ labels: months, datasets:[
+      {label:'2024 Sales', data:data.s2024, tension:.25},
+      {label:'2025 Sales', data:data.s2025, tension:.25}
+    ]},
+    options:{ plugins:{legend:{labels:{color:'#cbd5e1'}}},
+      scales:{ x:{ ticks:{color:'#cbd5e1'}},
+               y:{ ticks:{color:'#cbd5e1', callback:v=>'$'+Number(v).toLocaleString()},
+                   grid:{color:'rgba(203,213,225,.15)'} } }
+  });
+
+  const deltas = monthlyDelta();
+  const pct = monthlyPct().map(x=> (isFinite(x)? x:0));
+  barDelta = new Chart(ctx2,{
+    type:'bar',
+    data:{ labels: months.map((m,i)=> m+' ('+(pct[i]>=0?'+':'')+pct[i].toFixed(1)+'%)'),
+           datasets:[{ label:'2025 − 2024', data:deltas }]},
+    options:{ plugins:{legend:{labels:{color:'#cbd5e1'}}},
+      scales:{ x:{ ticks:{color:'#cbd5e1'}},
+               y:{ ticks:{color:'#cbd5e1', callback:v=> (v>=0?'+':'')+'$'+Number(v).toLocaleString()},
+                   grid:{color:'rgba(203,213,225,.15)'} } }
+  });
+
+  // Profit chart respects method + savings toggle
+  const method = $('selMethod').value;
+  const addSave = $('chkSavings').checked;
+  const pBase = (method==='current') ? data.profitCurrentPct.slice() : data.profitProjectedSE.slice();
+  if(addSave){
+    for(let i=6;i<12;i++){ pBase[i] = (pBase[i]||0) + (data.addSavingsJulDec||0); }
+  }
+  lineProfit = new Chart(ctx3,{
+    type:'line',
+    data:{ labels: months, datasets:[{label:'Projected Profit', data:pBase, tension:.25}] },
+    options:{ plugins:{legend:{labels:{color:'#cbd5e1'}}},
+      scales:{ x:{ ticks:{color:'#cbd5e1'}},
+               y:{ ticks:{color:'#cbd5e1', callback:v=> (v>=0?'+':'')+'$'+Number(v).toLocaleString()},
+                   grid:{color:'rgba(203,213,225,.15)'} } }
+  });
+
+  barExpense = new Chart(ctx4,{
+    type:'bar',
+    data:{ labels: months, datasets:[{label:'Expenses', data:data.expenses}] },
+    options:{ plugins:{legend:{labels:{color:'#cbd5e1'}}},
+      scales:{ x:{ ticks:{color:'#cbd5e1'}},
+               y:{ ticks:{color:'#cbd5e1', callback:v=>'$'+Number(v).toLocaleString()},
+                   grid:{color:'rgba(203,213,225,.15)'} } }
+  });
+
+  // Projection note
+  $('projNote').textContent =
+    (method==='current' ? 'Using “Current Profit %” reported series' : 'Using “Projected Sales − Expenses” reported series') +
+    (addSave? ' • +$15k Jul–Dec applied':'');
+}
+
+/* ===== Table ===== */
+function drawTable(){
+  const TB = $('tbody'); TB.innerHTML='';
+  const del = monthlyDelta(), pct = monthlyPct();
+  months.forEach((m,i)=>{
+    const tr = document.createElement('tr');
+    const cls = (del[i]>=0?'pos':'neg');
+    tr.innerHTML = `
+      <td>${m}</td>
+      <td class="text-right mono">${money(data.s2024[i]||0)}</td>
+      <td class="text-right mono">${money(data.s2025[i]||0)}</td>
+      <td class="text-right mono ${cls}">${sign(del[i]||0)}</td>
+      <td class="text-right mono ${cls}">${(isFinite(pct[i])?(pct[i]>=0?'+':'')+pct[i].toFixed(1)+'%':'—')}</td>
+      <td class="text-right mono">${money(data.expenses[i]||0)}</td>
+      <td class="text-right mono">${money(data.profitCurrentPct[i]||0)}</td>
+      <td class="text-right mono">${money(data.profitProjectedSE[i]||0)}</td>
+    `;
+    TB.appendChild(tr);
+  });
+}
+
+/* ===== KPIs ===== */
+function setKPIs(){
+  const y25 = sum(data.s2025);
+  const y24 = sum(data.s2024);
+  const delta = y25 - y24;
+  const pct = y24? ((delta/y24)*100) : 0;
+
+  $('kYtd25').textContent = money(y25,0);
+  $('kYtdDelta').textContent = sign(delta);
+  $('kYtdPct').textContent = (pct>=0?'+':'') + pct.toFixed(2) + '%';
+  $('kYearDelta').textContent = '-$256,266.80 (sheet)'; // from your provided sheet projection
+  $('kCostPerDay').textContent = '$5,153.55 (avg reported)';
+  $('ytdMonths').textContent = ytdLabel();
+}
+
+/* ===== CSV import (optional) =====
+Expected headers (order flexible):
+Year,Month,Sales,Expenses,ProfitCurrentPct,ProfitProjectedSE
+Month can be Jan/January/etc; Year must be 2024 or 2025.
+Only Sales and Expenses are required; profits optional.
+*/
+function monthIndex(name){
+  if(!name) return -1;
+  const s = String(name).trim().toLowerCase().slice(0,3);
+  return ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'].indexOf(s);
+}
+function parseCSV(text){
+  const rows = text.split(/\r?\n/).filter(x=>x.trim().length);
+  const head = rows.shift().split(',').map(h=>h.trim().toLowerCase());
+  const idx = {
+    year: head.indexOf('year'),
+    month: head.indexOf('month'),
+    sales: head.indexOf('sales'),
+    expenses: head.indexOf('expenses'),
+    p1: head.indexOf('profitcurrentpct'),
+    p2: head.indexOf('profitprojectedse')
+  };
+  if(idx.year<0 || idx.month<0 || idx.sales<0){
+    alert('CSV needs at least Year,Month,Sales columns.'); return null;
+  }
+  const s24 = Array(12).fill(0), s25 = Array(12).fill(0), exp = Array(12).fill(0), p1 = Array(12).fill(0), p2 = Array(12).fill(0);
+  rows.forEach(line=>{
+    const cols = line.split(','); if(cols.length<3) return;
+    const yr = Number(cols[idx.year]); const mi = monthIndex(cols[idx.month]);
+    if((yr!==2024 && yr!==2025) || mi<0) return;
+    const sales = Number(cols[idx.sales]||0);
+    const ex = idx.expenses>=0 ? Number(cols[idx.expenses]||0) : NaN;
+    const q1 = idx.p1>=0 ? Number(cols[idx.p1]||0) : NaN;
+    const q2 = idx.p2>=0 ? Number(cols[idx.p2]||0) : NaN;
+    if(yr===2024){ s24[mi]=sales; }
+    if(yr===2025){ s25[mi]=sales; if(!isNaN(ex)) exp[mi]=ex; if(!isNaN(q1)) p1[mi]=q1; if(!isNaN(q2)) p2[mi]=q2; }
+  });
+  return { s24, s25, exp, p1, p2 };
+}
+$('fileCsv').addEventListener('change', async (e)=>{
+  const f = e.target.files?.[0]; if(!f) return;
+  try{
+    const txt = await f.text();
+    const parsed = parseCSV(txt); if(!parsed) return;
+    data.s2024 = parsed.s24;
+    data.s2025 = parsed.s25;
+    if(parsed.exp.some(x=>x!==0)) data.expenses = parsed.exp;
+    if(parsed.p1.some(x=>x!==0)) data.profitCurrentPct = parsed.p1;
+    if(parsed.p2.some(x=>x!==0)) data.profitProjectedSE = parsed.p2;
+    setKPIs(); drawCharts(); drawTable();
+  }catch(err){ alert('Could not parse CSV: '+err.message); }
+});
+
+/* ===== Template download ===== */
+$('btnTemplate').addEventListener('click', ()=>{
+  const lines = [];
+  lines.push('Year,Month,Sales,Expenses,ProfitCurrentPct,ProfitProjectedSE');
+  for(let y of [2024,2025]){
+    months.forEach((m,i)=>{
+      lines.push([y,m,'', '', '', ''].join(','));
+    });
+  }
+  const blob = new Blob([lines.join('\n')], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'amigo-partner-brief-template.csv';
+  a.click();
+});
+
+/* ===== Re-render on toggles ===== */
+['selMethod','chkSavings'].forEach(id=> $(id).addEventListener('input', drawCharts, {passive:true}));
+
+/* ===== Init ===== */
+function init(){
+  setKPIs();
+  drawCharts();
+  drawTable();
+}
+window.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
