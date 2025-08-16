@@ -40,9 +40,11 @@
       <p class="soft" style="margin:.25rem 0 0">Live 2024 vs 2025 sales, deltas, and profit projections. Pulls from Google Sheet or your saved manual data.</p>
     </div>
     <div class="noprint" style="display:flex;flex-wrap:wrap;gap:.5rem;align-items:end">
-      <a href="./manual-input.html" class="btn">Manual Entry</a>
+      <!-- Link to manual input page in the same folder -->
+      <a href="manual-input.html" class="btn" title="Go to manual data entry">Manual Entry</a>
+      <button id="btnUseManual" class="btn" title="Force-load saved manual data if present">Use Manual Data</button>
       <div>
-        <label class="soft" style="font-size:.75rem;display:block">Google Sheet CSV URL</label>
+        <label class="soft" style="font-size:.75rem;display:block">Google Sheet (paste Share link or CSV link)</label>
         <input id="csvUrl" style="width:420px;background:#0f172a;border:1px solid #334155;border-radius:.55rem;padding:.4rem .6rem;color:#e2e8f0">
       </div>
       <button id="btnSaveUrl" class="btn">Save URL</button>
@@ -50,7 +52,7 @@
       <label class="soft" style="font-size:.75rem;display:flex;align-items:center;gap:.4rem">
         <input id="autoRefresh" type="checkbox"> Auto-refresh every 5 min
       </label>
-      <span id="fetchStamp" class="pill soft">Loading…</span>
+      <span id="fetchStamp" class="pill soft">JS connected</span>
       <span class="soft" style="font-size:.75rem">• or </span>
       <label class="btn" for="fileCsv" style="cursor:pointer">Upload CSV</label>
       <input id="fileCsv" type="file" accept=".csv,text/csv" class="noprint" style="display:none">
@@ -125,7 +127,7 @@
   </section>
 
   <footer class="soft" style="font-size:.75rem">
-    Use the header link to go to <b>Manual Entry</b>. That page can push its data back here.
+    Paste a normal Google Sheets link, hit <b>Save URL</b>. It will auto-convert to CSV & refresh. Use <b>Manual Entry</b> anytime.
   </footer>
 </div>
 
@@ -133,16 +135,18 @@
 /* ===== status pill ===== */
 const $=id=>document.getElementById(id);
 function stamp(msg, ok=null){ const el=$('fetchStamp'); el.textContent=msg; if(ok===true){el.style.color='#bbf7d0';el.style.borderColor='#166534';} else if(ok===false){el.style.color='#fecaca';el.style.borderColor='#9f1239';} }
-stamp('JS connected');
 
 /* ===== config ===== */
-const DEFAULT_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRLbxvVjoOhjREgdbrH2OBW1b6HIviclFegTb8CoSOJR3Okwg_nb40qzJ8QKhf_BWQRWWuzWWv9Fw3w/pub?gid=0&single=true&output=csv";
 const LS_KEY='partner_brief_csv_url', LS_AUTO='partner_brief_auto_refresh';
 
 /* ===== helpers & data ===== */
 const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
 const money=(n,d=0)=>Number(n||0).toLocaleString(undefined,{style:'currency',currency:'USD',maximumFractionDigits:d});
-const sign=n=>(n>=0?'+':'')+money(n); const pctFmt=x=>isFinite(x)?((x>=0?'+':'')+x.toFixed(1)+'%'):'—'; const normHead=h=>String(h||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+const sign=n=>(n>=0?'+':'')+money(n);
+const pctFmt=x=>isFinite(x)?((x>=0?'+':'')+x.toFixed(1)+'%'):'—';
+const normHead=h=>String(h||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+
+// Starter seed so the page renders before your link is saved
 let data={ s2024:[168076.2,177540,189646.6,175948.7,181556.1,187181.1,180416.7,179365.6,154514,161960.4,158570.3,166856.4],
             s2025:[144619.72,149778.6,172845.74,159293.52,174489.45,156133.29,148160.23,157258.61,135469.99,141998.62,139026.35,146291.18],
             expenses:[144983.19,148265.09,156638.86,163805.33,169739.06,148822.77,159760.13,159760.13,154606.58,159760.13,154606.58,159760.13],
@@ -150,31 +154,93 @@ let data={ s2024:[168076.2,177540,189646.6,175948.7,181556.1,187181.1,180416.7,1
             profitProjectedSE:[-363.47,1513.51,16206.88,-4511.81,4750.39,7310.52,-11599.9,-2501.52,-19136.58,-17761.51,-15580.23,-13468.95],
             addSavingsJulDec:15000, yearlyDeltaNote:'-$256,266.80 (from your sheet)', costPerDayNote:'$5,153.55 (avg reported)' };
 
-/* ===== CSV parsing ===== */
-function parseCSV(text){ const rows=[]; let row=[],cur='',inQ=false; for(let i=0;i<text.length;i++){const c=text[i]; if(inQ){ if(c==='"'&&text[i+1]==='"'){cur+='"';i++;} else if(c==='"'){inQ=false;} else cur+=c; } else { if(c==='"'){inQ=true;} else if(c===','){row.push(cur);cur='';} else if(c==='\n'){row.push(cur);rows.push(row);row=[];cur='';} else if(c!=='\r'){cur+=c;} } } row.push(cur); rows.push(row); return rows.filter(r=>r.some(x=>String(x).trim()!=='')); }
-function toNumber(x){ const s=String(x??'').replace(/[\$,]/g,'').trim(); if(!s) return 0; const n=Number(s); return isFinite(n)?n:0; }
-function ingest(rows){ if(!rows.length) throw new Error('Empty CSV'); const head=rows[0].map(h=>normHead(h)), body=rows.slice(1);
-  const hasYear=head.includes('year'), hasMonth=head.includes('month'); const s24i=head.findIndex(h=>h.includes('sales')&&h.includes('2024')); const s25i=head.findIndex(h=>h.includes('sales')&&h.includes('2025'));
-  const idx={year:head.indexOf('year'),month:head.indexOf('month'),sales:head.indexOf('sales'),expenses:head.findIndex(h=>h==='expenses'||h==='totalexpenses'||h==='operatingexpenses'),p1:head.findIndex(h=>h==='profitcurrentpct'||h==='profitcurrent'||h==='currentprofit'),p2:head.findIndex(h=>h==='profitprojectedse'||h==='profitprojected'||h==='projectedsminuse')};
-  const s24=Array(12).fill(0), s25=Array(12).fill(0), exp=Array(12).fill(0), p1=Array(12).fill(0), p2=Array(12).fill(0);
-  function mIdx(name){ if(!name) return -1; const s=String(name).trim().toLowerCase().slice(0,3); return ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'].indexOf(s); }
-  if(hasYear&&hasMonth&&idx.sales>=0){ body.forEach(r=>{ const yr=Number(r[idx.year]); const mi=mIdx(r[idx.month]); if(mi<0) return; const sales=toNumber(r[idx.sales]); const ex=idx.expenses>=0?toNumber(r[idx.expenses]):0; const q1=idx.p1>=0?toNumber(r[idx.p1]):0; const q2=idx.p2>=0?toNumber(r[idx.p2]):0; if(yr===2024) s24[mi]=sales; if(yr===2025){ s25[mi]=sales; exp[mi]=ex; p1[mi]=q1; p2[mi]=q2; } }); }
-  else if(hasMonth&&s24i>=0&&s25i>=0){ body.forEach(r=>{ const mi=mIdx(r[head.indexOf('month')]); if(mi<0) return; s24[mi]=toNumber(r[s24i]); s25[mi]=toNumber(r[s25i]); if(idx.expenses>=0) exp[mi]=toNumber(r[idx.expenses]); if(idx.p1>=0) p1[mi]=toNumber(r[idx.p1]); if(idx.p2>=0) p2[mi]=toNumber(r[idx.p2]); }); }
-  else throw new Error('Unrecognized columns.'); return {s24,s25,exp,p1,p2}; }
+/* Convert a normal Google Sheets “Share” link to a CSV export */
+function toCsvUrl(u){
+  try{
+    const url = new URL(u);
+    if (url.hostname.includes('docs.google.com') && url.pathname.includes('/spreadsheets/')) {
+      // /spreadsheets/d/<ID>/edit#gid=123456789
+      const m = url.pathname.match(/\/spreadsheets\/d\/([^/]+)/);
+      const id = m ? m[1] : null;
+      const gid = url.searchParams.get('gid') || (url.hash.match(/gid=(\d+)/)?.[1]) || '0';
+      if (id) return `https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=${gid}`;
+    }
+    return u; // already CSV or some other URL
+  }catch{ return u; }
+}
 
-/* ===== charts & table ===== */
+/* CSV parsing */
+function parseCSV(text){
+  const rows=[]; let row=[],cur='',inQ=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(inQ){
+      if(c==='"'&&text[i+1]==='"'){cur+='"';i++;}
+      else if(c==='"'){inQ=false;}
+      else cur+=c;
+    }else{
+      if(c==='"'){inQ=true;}
+      else if(c===','){row.push(cur);cur='';}
+      else if(c==='\n'){row.push(cur);rows.push(row);row=[];cur='';}
+      else if(c!=='\r'){cur+=c;}
+    }
+  }
+  row.push(cur); rows.push(row);
+  return rows.filter(r=> r.some(x=> String(x).trim()!==''));
+}
+function toNumber(x){ const s=String(x??'').replace(/[\$,]/g,'').trim(); if(!s) return 0; const n=Number(s); return isFinite(n)?n:0; }
+function ingest(rows){
+  if(!rows.length) throw new Error('Empty CSV');
+  const head=rows[0].map(h=>normHead(h)), body=rows.slice(1);
+  const hasYear=head.includes('year'), hasMonth=head.includes('month');
+  const s24i=head.findIndex(h=>h.includes('sales')&&h.includes('2024'));
+  const s25i=head.findIndex(h=>h.includes('sales')&&h.includes('2025'));
+  const idx={year:head.indexOf('year'),month:head.indexOf('month'),sales:head.indexOf('sales'),
+    expenses:head.findIndex(h=>h==='expenses'||h==='totalexpenses'||h==='operatingexpenses'),
+    p1:head.findIndex(h=>h==='profitcurrentpct'||h==='profitcurrent'||h==='currentprofit'),
+    p2:head.findIndex(h=>h==='profitprojectedse'||h==='profitprojected'||h==='projectedsminuse')};
+  const s24=Array(12).fill(0), s25=Array(12).fill(0), exp=Array(12).fill(0), p1=Array(12).fill(0), p2=Array(12).fill(0);
+  function mIdx(name){ if(!name) return -1; const s=String(name).trim().toLowerCase().slice(0,3);
+    return ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'].indexOf(s); }
+  if(hasYear&&hasMonth&&idx.sales>=0){
+    body.forEach(r=>{ const yr=Number(r[idx.year]); const mi=mIdx(r[idx.month]); if(mi<0) return;
+      const sales=toNumber(r[idx.sales]); const ex=idx.expenses>=0?toNumber(r[idx.expenses]):0;
+      const q1=idx.p1>=0?toNumber(r[idx.p1]):0; const q2=idx.p2>=0?toNumber(r[idx.p2]):0;
+      if(yr===2024) s24[mi]=sales;
+      if(yr===2025){ s25[mi]=sales; exp[mi]=ex; p1[mi]=q1; p2[mi]=q2; }});
+  } else if(hasMonth&&s24i>=0&&s25i>=0){
+    body.forEach(r=>{ const mi=mIdx(r[head.indexOf('month')]); if(mi<0) return;
+      s24[mi]=toNumber(r[s24i]); s25[mi]=toNumber(r[s25i]);
+      if(idx.expenses>=0) exp[mi]=toNumber(r[idx.expenses]);
+      if(idx.p1>=0) p1[mi]=toNumber(r[idx.p1]);
+      if(idx.p2>=0) p2[mi]=toNumber(r[idx.p2]); });
+  } else {
+    throw new Error('Unrecognized columns.');
+  }
+  return {s24,s25,exp,p1,p2};
+}
+
+/* charts & table */
 let lineSales, barDelta, lineProfit, barExpense;
 function monthlyDelta(){ return data.s2025.map((v,i)=> v-(data.s2024[i]||0)); }
 function monthlyPct(){ return data.s2025.map((v,i)=>{const b=data.s2024[i]||0; return b?((v-b)/b)*100:0}); }
 function sum(a){ return a.reduce((x,y)=>x+Number(y||0),0); }
-function draw(){
-  $('kYtd25').textContent=money(sum(data.s2025));
-  const d=sum(data.s2025)-sum(data.s2024); $('kYtdDelta').textContent=sign(d); $('kYtdPct').textContent=((sum(data.s2024)?(d/sum(data.s2024))*100:0)>=0?'+':'')+(sum(data.s2024)?(d/sum(data.s2024))*100:0).toFixed(2)+'%';
-  $('kYearDelta').textContent=data.yearlyDeltaNote; $('kCostPerDay').textContent=data.costPerDayNote;
 
-  const TB=$('tbody'); TB.innerHTML=''; const del=monthlyDelta(), p=monthlyPct();
+function draw(){
+  // KPIs
+  $('kYtd25').textContent=money(sum(data.s2025));
+  const d=sum(data.s2025)-sum(data.s2024);
+  $('kYtdDelta').textContent=sign(d);
+  $('kYtdPct').textContent=((sum(data.s2024)?(d/sum(data.s2024))*100:0)>=0?'+':'')+(sum(data.s2024)?(d/sum(data.s2024))*100:0).toFixed(2)+'%';
+  $('kYearDelta').textContent=data.yearlyDeltaNote||'—';
+  $('kCostPerDay').textContent=data.costPerDayNote||'—';
+
+  // Table
+  const TB=$('tbody'); TB.innerHTML='';
+  const del=monthlyDelta(), p=monthlyPct();
   months.forEach((m,i)=>{ const tr=document.createElement('tr'); const cls=(del[i]>=0?'pos':'neg'); tr.innerHTML=`
-    <td>${m}</td><td class="text-right mono">${money(data.s2024[i]||0)}</td>
+    <td>${m}</td>
+    <td class="text-right mono">${money(data.s2024[i]||0)}</td>
     <td class="text-right mono">${money(data.s2025[i]||0)}</td>
     <td class="text-right mono ${cls}">${sign(del[i]||0)}</td>
     <td class="text-right mono ${cls}">${isFinite(p[i])?((p[i]>=0?'+':'')+p[i].toFixed(1)+'%'):'—'}</td>
@@ -182,38 +248,155 @@ function draw(){
     <td class="text-right mono">${money(data.profitCurrentPct[i]||0)}</td>
     <td class="text-right mono">${money(data.profitProjectedSE[i]||0)}</td>`; TB.appendChild(tr); });
 
-  [lineSales,barDelta,lineProfit,barExpense].forEach(c=>c&&c.destroy());
-  const mk = () => new Promise((resolve,reject)=>{ if(window.Chart) return resolve(); const s=document.createElement('script'); s.src='https://unpkg.com/chart.js@4.4.1/dist/chart.umd.min.js'; s.onload=resolve; s.onerror=()=>{ const s2=document.createElement('script'); s2.src='https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js'; s2.onload=resolve; s2.onerror=reject; document.head.appendChild(s2); }; document.head.appendChild(s); });
-  mk().then(()=>{
-    const ctx1=$('lineSales').getContext('2d'), ctx2=$('barDelta').getContext('2d'), ctx3=$('lineProfit').getContext('2d'), ctx4=$('barExpense').getContext('2d');
-    lineSales=new Chart(ctx1,{type:'line',data:{labels:months,datasets:[{label:'2024 Sales',data:data.s2024,tension:.25},{label:'2025 Sales',data:data.s2025,tension:.25}]},options:{plugins:{legend:{labels:{color:'#cbd5e1'}}},scales:{x:{ticks:{color:'#cbd5e1'}},y:{ticks:{color:'#cbd5e1',callback:v=>'$'+Number(v).toLocaleString()},grid:{color:'rgba(203,213,225,.15)'}}}});
+  // Load Chart.js (two CDNs for resilience)
+  const ensureChart=()=>new Promise((resolve,reject)=>{
+    if(window.Chart) return resolve();
+    const s=document.createElement('script');
+    s.src='https://unpkg.com/chart.js@4.4.1/dist/chart.umd.min.js';
+    s.onload=resolve;
+    s.onerror=()=>{ const s2=document.createElement('script');
+      s2.src='https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js';
+      s2.onload=resolve; s2.onerror=reject; document.head.appendChild(s2); };
+    document.head.appendChild(s);
+  });
+
+  ensureChart().then(()=>{
+    [lineSales,barDelta,lineProfit,barExpense].forEach(c=>c&&c.destroy());
+    const ctx1=$('lineSales').getContext('2d');
+    const ctx2=$('barDelta').getContext('2d');
+    const ctx3=$('lineProfit').getContext('2d');
+    const ctx4=$('barExpense').getContext('2d');
+
+    lineSales=new Chart(ctx1,{type:'line',
+      data:{labels:months,datasets:[
+        {label:'2024 Sales',data:data.s2024,tension:.25},
+        {label:'2025 Sales',data:data.s2025,tension:.25}]},
+      options:{plugins:{legend:{labels:{color:'#cbd5e1'}}},
+        scales:{x:{ticks:{color:'#cbd5e1'}},
+                y:{ticks:{color:'#cbd5e1',callback:v=>'$'+Number(v).toLocaleString()},grid:{color:'rgba(203,213,225,.15)'}}}});
+
     const deltas=monthlyDelta(), pcts=monthlyPct().map(x=>isFinite(x)?x:0);
-    barDelta=new Chart(ctx2,{type:'bar',data:{labels:months.map((m,i)=>m+' ('+(pcts[i]>=0?'+':'')+pcts[i].toFixed(1)+'%)'),datasets:[{label:'2025 − 2024',data:deltas}]},options:{plugins:{legend:{labels:{color:'#cbd5e1'}}},scales:{x:{ticks:{color:'#cbd5e1'}},y:{ticks:{color:'#cbd5e1',callback:v=>(v>=0?'+':'')+'$'+Number(v).toLocaleString()},grid:{color:'rgba(203,213,225,.15)'}}}});
-    const method=$('selMethod').value, add=$('chkSavings').checked; const pBase=(method==='current')?data.profitCurrentPct.slice():data.profitProjectedSE.slice(); if(add){ for(let i=6;i<12;i++) pBase[i]=(pBase[i]||0)+(data.addSavingsJulDec||0); }
-    lineProfit=new Chart(ctx3,{type:'line',data:{labels:months,datasets:[{label:'Projected Profit',data:pBase,tension:.25}]},options:{plugins:{legend:{labels:{color:'#cbd5e1'}}},scales:{x:{ticks:{color:'#cbd5e1'}},y:{ticks:{color:'#cbd5e1',callback:v=>(v>=0?'+':'')+'$'+Number(v).toLocaleString()},grid:{color:'rgba(203,213,225,.15)'}}}});
-    barExpense=new Chart(ctx4,{type:'bar',data:{labels:months,datasets:[{label:'Expenses',data:data.expenses}]},options:{plugins:{legend:{labels:{color:'#cbd5e1'}}},scales:{x:{ticks:{color:'#cbd5e1'}},y:{ticks:{color:'#cbd5e1',callback:v=>'$'+Number(v).toLocaleString()},grid:{color:'rgba(203,213,225,.15)'}}}});
+    barDelta=new Chart(ctx2,{type:'bar',
+      data:{labels:months.map((m,i)=>m+' ('+(pcts[i]>=0?'+':'')+pcts[i].toFixed(1)+'%)'),
+            datasets:[{label:'2025 − 2024',data:deltas}]},
+      options:{plugins:{legend:{labels:{color:'#cbd5e1'}}},
+        scales:{x:{ticks:{color:'#cbd5e1'}},
+                y:{ticks:{color:'#cbd5e1',callback:v=>(v>=0?'+':'')+'$'+Number(v).toLocaleString()},grid:{color:'rgba(203,213,225,.15)'}}}});
+
+    const method=$('selMethod').value, add=$('chkSavings').checked;
+    const pBase=(method==='current')?data.profitCurrentPct.slice():data.profitProjectedSE.slice();
+    if(add){ for(let i=6;i<12;i++) pBase[i]=(pBase[i]||0)+(data.addSavingsJulDec||0); }
+    lineProfit=new Chart(ctx3,{type:'line',
+      data:{labels:months,datasets:[{label:'Projected Profit',data:pBase,tension:.25}]},
+      options:{plugins:{legend:{labels:{color:'#cbd5e1'}}},
+        scales:{x:{ticks:{color:'#cbd5e1'}},
+                y:{ticks:{color:'#cbd5e1',callback:v=>(v>=0?'+':'')+'$'+Number(v).toLocaleString()},grid:{color:'rgba(203,213,225,.15)'}}}});
+
+    barExpense=new Chart(ctx4,{type:'bar',
+      data:{labels:months,datasets:[{label:'Expenses',data:data.expenses}]},
+      options:{plugins:{legend:{labels:{color:'#cbd5e1'}}},
+        scales:{x:{ticks:{color:'#cbd5e1'}},
+                y:{ticks:{color:'#cbd5e1',callback:v=>'$'+Number(v).toLocaleString()},grid:{color:'rgba(203,213,225,.15)'}}}});
+
     $('projNote').textContent=(method==='current'?'Using “Current Profit %”':'Using “Projected Sales − Expenses”')+($('chkSavings').checked?' • +$15k Jul–Dec applied':'');
     stamp('Rendered',true);
   }).catch(e=>{ console.error(e); stamp('Error loading charts',false); });
 }
 
-/* ===== fetch ===== */
-async function fetchCsv(url){ const res=await fetch(url,{cache:'no-store'}); if(!res.ok) throw new Error(`HTTP ${res.status}`); return await res.text(); }
-async function refreshFromUrl(){ const url=$('csvUrl').value.trim(); if(!url){ stamp('No URL',false); return; } try{ stamp('Fetching CSV…'); const csv=await fetchCsv(url); const rows=parseCSV(csv); const p=ingest(rows);
-  data.s2024=p.s24; data.s2025=p.s25; if(p.exp.some(x=>x!==0)) data.expenses=p.exp; if(p.p1.some(x=>x!==0)) data.profitCurrentPct=p.p1; if(p.p2.some(x=>x!==0)) data.profitProjectedSE=p.p2; draw(); stamp('OK: Loaded '+new Date().toLocaleTimeString(),true);
-} catch(e){ console.error(e); stamp('Error: '+e.message,false); }}
+/* ===== fetch / load ===== */
+async function refreshFromUrl(){
+  const url = $('csvUrl').value.trim();
+  if (!url) { stamp('No URL', false); return; }
+  try{
+    stamp('Fetching CSV…');
+    let csv;
+    if (url.startsWith('data:text/csv')) {
+      csv = decodeURIComponent(url.split(',')[1] || '');
+    } else {
+      const res = await fetch(url, { cache:'no-store' });
+      if(!res.ok) throw new Error(`HTTP ${res.status}`);
+      csv = await res.text();
+    }
+    const rows = parseCSV(csv);
+    const p = ingest(rows);
+    data.s2024=p.s24; data.s2025=p.s25;
+    if (p.exp.some(x=>x!==0)) data.expenses=p.exp;
+    if (p.p1.some(x=>x!==0)) data.profitCurrentPct=p.p1;
+    if (p.p2.some(x=>x!==0)) data.profitProjectedSE=p.p2;
+    draw();
+    stamp('OK: Loaded '+new Date().toLocaleTimeString(), true);
+  }catch(e){
+    console.error(e);
+    stamp('Error: '+e.message, false);
+  }
+}
 
 /* ===== UI & init ===== */
-let autoTimer=null; function setAutoRefresh(on){ localStorage.setItem(LS_AUTO,on?'1':'0'); if(autoTimer){clearInterval(autoTimer);autoTimer=null;} if(on){autoTimer=setInterval(refreshFromUrl,5*60*1000);} }
-document.addEventListener('DOMContentLoaded', ()=>{ const saved=localStorage.getItem(LS_KEY)||DEFAULT_CSV_URL; $('csvUrl').value=saved; const auto=localStorage.getItem(LS_AUTO)==='1'; $('autoRefresh').checked=auto; setAutoRefresh(auto);
-  $('btnSaveUrl').addEventListener('click',()=>{ const url=$('csvUrl').value.trim(); if(!url) return alert('Paste a valid “Publish to web” CSV URL or data URL.'); localStorage.setItem(LS_KEY,url); stamp('Saved URL',true); });
-  $('btnFetch').addEventListener('click',refreshFromUrl);
-  $('autoRefresh').addEventListener('change',e=>setAutoRefresh(e.target.checked));
-  $('fileCsv').addEventListener('change', async e=>{ const f=e.target.files?.[0]; if(!f) return; try{ const txt=await f.text(); const rows=parseCSV(txt); const p=ingest(rows); data.s2024=p.s24; data.s2025=p.s25; if(p.exp.some(x=>x!==0)) data.expenses=p.exp; if(p.p1.some(x=>x!==0)) data.profitCurrentPct=p.p1; if(p.p2.some(x=>x!==0)) data.profitProjectedSE=p.p2; draw(); stamp('Loaded from file',true);}catch(err){alert('Could not parse CSV: '+err.message);} });
-  ['selMethod','chkSavings'].forEach(id=>document.getElementById(id).addEventListener('input',draw,{passive:true}));
-  draw(); refreshFromUrl(); // seeds then live
+let autoTimer=null;
+function setAutoRefresh(on){
+  localStorage.setItem(LS_AUTO, on?'1':'0');
+  if(autoTimer){ clearInterval(autoTimer); autoTimer=null; }
+  if(on){ autoTimer=setInterval(refreshFromUrl,5*60*1000); }
+}
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  // Load saved URL (could be a data: URL or a converted CSV URL)
+  const saved = localStorage.getItem(LS_KEY) || '';
+  $('csvUrl').value = saved;
+
+  const auto = localStorage.getItem(LS_AUTO)==='1';
+  $('autoRefresh').checked = auto; setAutoRefresh(auto);
+
+  // Save URL: auto-convert Google link -> CSV, save, show converted URL, and refresh
+  $('btnSaveUrl').addEventListener('click', ()=>{
+    let url = $('csvUrl').value.trim();
+    if (!url) return alert('Paste your Google Sheets link first.');
+    url = toCsvUrl(url);
+    localStorage.setItem(LS_KEY, url);
+    $('csvUrl').value = url;
+    stamp('Saved URL → Refreshing…', true);
+    refreshFromUrl();
+  });
+
+  // Force using whatever is already in the input (handy for manual data URLs too)
+  $('btnFetch').addEventListener('click', refreshFromUrl);
+
+  // Use Manual Data: pull from the same key the manual page writes (a data: URL)
+  $('btnUseManual').addEventListener('click', ()=>{
+    const manual = localStorage.getItem(LS_KEY);
+    if (!manual || !manual.startsWith('data:text/csv')) {
+      alert('No manual data found yet. Go to “Manual Entry” first and click “Open Partner Brief with this data”.');
+      return;
+    }
+    $('csvUrl').value = manual;
+    stamp('Using Manual Data → Refreshing…', true);
+    refreshFromUrl();
+  });
+
+  $('autoRefresh').addEventListener('change', e=> setAutoRefresh(e.target.checked));
+
+  $('fileCsv').addEventListener('change', async e=>{
+    const f=e.target.files?.[0]; if(!f) return;
+    try{
+      const txt=await f.text();
+      const rows=parseCSV(txt);
+      const p=ingest(rows);
+      data.s2024=p.s24; data.s2025=p.s25;
+      if(p.exp.some(x=>x!==0)) data.expenses=p.exp;
+      if(p.p1.some(x=>x!==0)) data.profitCurrentPct=p.p1;
+      if(p.p2.some(x=>x!==0)) data.profitProjectedSE=p.p2;
+      draw(); stamp('Loaded from file',true);
+    }catch(err){ alert('Could not parse CSV: '+err.message); }
+  });
+
+  ['selMethod','chkSavings'].forEach(id=>document.getElementById(id).addEventListener('input', draw, {passive:true}));
+
+  // Initial render with seed data; if a saved URL exists, fetch it
+  draw();
+  if (saved) refreshFromUrl();
 });
 </script>
 </body>
 </html>
+
 
