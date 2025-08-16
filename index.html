@@ -1,402 +1,239 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Amigo Brainerd — 2024 vs 2025 Partner Brief (Live)</title>
-<link rel="icon" href="data:;base64,=">
-<style>
-  :root{ --ink:#e5e7eb; --ink-soft:#a3b0c2; --panel:rgba(15,23,42,.78); --line:rgb(51,65,85); }
-  body{ background:#0b1220; color:var(--ink); font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,"Helvetica Neue",Arial; }
-  .wrap{ max-width:72rem; margin:0 auto; padding:1.5rem; }
-  .card{ background:var(--panel); border-radius:1rem; padding:1rem 1.25rem; box-shadow:0 1px 2px rgba(0,0,0,.3); }
-  .kpi{ font-size:1.6rem; font-weight:800; line-height:1.1; font-variant-numeric:tabular-nums; }
-  .pill{ border:1px solid var(--line); padding:.2rem .5rem; border-radius:999px; font-size:.75rem; white-space:nowrap; }
-  .btn{ padding:.5rem .8rem; border:1px solid var(--line); border-radius:.6rem; background:transparent; color:#e2e8f0; font-size:.9rem; white-space:nowrap; text-decoration:none; display:inline-block; }
-  .btn:hover{ background:rgba(148,163,184,.08); border-color:rgb(71,85,105); }
-  .btn.primary{ border-color:rgb(37,99,235); }
-  .btn.primary:hover{ background:rgba(37,99,235,.15); }
-  .soft{ color:var(--ink-soft) }
-  .mono{ font-variant-numeric:tabular-nums }
-  .grid-2{ display:grid; grid-template-columns:1.1fr .9fr; gap:1rem }
-  .grid-4{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:1rem }
-  @media (max-width:1200px){ .grid-2,.grid-4{ grid-template-columns:1fr } }
-  table{ width:100%; border-collapse:separate; border-spacing:0 }
-  th,td{ padding:.5rem .6rem; border-bottom:1px solid rgba(148,163,184,.2) }
-  th{ text-align:left; color:#cbd5e1; background:rgba(15,23,42,.95); position:sticky; top:0; z-index:1 }
-  td.text-right{ text-align:right }
-  .pos{ color:#86efac } .neg{ color:#fca5a5 }
-  .space-y-6>*+*{ margin-top:1.5rem }
-  @media print{ .noprint{ display:none!important } body{ background:#fff; color:#111827 } .card{ background:#fff; border:1px solid #e5e7eb; box-shadow:none } }
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Partner Brief — One Pager</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    html, body { background:#0b0f14; color:#e6edf3; }
+    .card { background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03)); border:1px solid rgba(255,255,255,0.08); }
+    .chip { background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.12); }
+    .grid-auto { display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+    .shadow-soft { box-shadow: 0 10px 30px rgba(0,0,0,0.25); }
+    .container { max-width:1100px; }
+    .kpi { font-variant-numeric: tabular-nums; }
+    .table-wrap { overflow:auto; }
+    /* Print tweaks */
+    @media print { .no-print { display:none !important; } body { background:#fff; color:#000; } .card { background:#fff; border-color:#ddd; } }
+  </style>
 </head>
-<body class="min-h-screen">
-<div class="wrap space-y-6">
-
-  <!-- Header -->
-  <header style="display:flex;gap:.75rem;justify-content:space-between;align-items:flex-start">
-    <div>
-      <h1 style="font-size:1.875rem;font-weight:800;margin:0">Amigo Brainerd — Partner Brief</h1>
-      <p class="soft" style="margin:.25rem 0 0">Live 2024 vs 2025 sales, deltas, and profit projections. Pulls from Google Sheet or your saved manual data.</p>
-    </div>
-    <div class="noprint" style="display:flex;flex-wrap:wrap;gap:.5rem;align-items:end">
-      <!-- Link to manual input page in the same folder -->
-      <a href="manual-input.html" class="btn" title="Go to manual data entry">Manual Entry</a>
-      <button id="btnUseManual" class="btn" title="Force-load saved manual data if present">Use Manual Data</button>
+<body>
+  <div class="container mx-auto p-5 md:p-8">
+    <!-- Header -->
+    <header class="mb-6 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
       <div>
-        <label class="soft" style="font-size:.75rem;display:block">Google Sheet (paste Share link or CSV link)</label>
-        <input id="csvUrl" style="width:420px;background:#0f172a;border:1px solid #334155;border-radius:.55rem;padding:.4rem .6rem;color:#e2e8f0">
+        <h1 class="text-3xl md:text-4xl font-semibold tracking-tight">Partner Brief</h1>
+        <p class="opacity-80 mt-1">Snapshot for upcoming partnering meeting — built as a single-page site.</p>
       </div>
-      <button id="btnSaveUrl" class="btn">Save URL</button>
-      <button id="btnFetch" class="btn primary">Refresh Now</button>
-      <label class="soft" style="font-size:.75rem;display:flex;align-items:center;gap:.4rem">
-        <input id="autoRefresh" type="checkbox"> Auto-refresh every 5 min
-      </label>
-      <span id="fetchStamp" class="pill soft">JS connected</span>
-      <span class="soft" style="font-size:.75rem">• or </span>
-      <label class="btn" for="fileCsv" style="cursor:pointer">Upload CSV</label>
-      <input id="fileCsv" type="file" accept=".csv,text/csv" class="noprint" style="display:none">
-      <button class="btn" onclick="window.print()">Print</button>
-    </div>
-  </header>
-
-  <!-- KPI row -->
-  <section class="grid-4">
-    <div class="card"><div class="soft" style="font-size:.9rem">YTD Sales 2025</div><div id="kYtd25" class="kpi mono">—</div><div class="soft" style="font-size:.75rem"><span id="ytdMonths">Jan–Dec</span></div></div>
-    <div class="card"><div class="soft" style="font-size:.9rem">YTD Δ vs 2024</div><div id="kYtdDelta" class="kpi mono">—</div><div id="kYtdPct" class="soft" style="font-size:.75rem">—</div></div>
-    <div class="card"><div class="soft" style="font-size:.9rem">Yearly Δ (projected @ same pace)</div><div id="kYearDelta" class="kpi mono">—</div><div class="soft" style="font-size:.75rem">From your sheet projection</div></div>
-    <div class="card"><div class="soft" style="font-size:.9rem">Cost / Day (avg)</div><div id="kCostPerDay" class="kpi mono">—</div><div class="soft" style="font-size:.75rem">As reported</div></div>
-  </section>
-
-  <!-- Charts row -->
-  <section class="grid-2">
-    <div class="card">
-      <h2 style="font-size:1.25rem;font-weight:700;margin:0 0 .5rem">Sales — 2024 vs 2025</h2>
-      <canvas id="lineSales" height="130"></canvas>
-      <div class="soft" style="font-size:.75rem;margin-top:.5rem">Monthly totals, side-by-side.</div>
-    </div>
-    <div class="card">
-      <h2 style="font-size:1.25rem;font-weight:700;margin:0 0 .5rem">Monthly Δ vs 2024</h2>
-      <canvas id="barDelta" height="130"></canvas>
-      <div class="soft" style="font-size:.75rem;margin-top:.5rem">Bars show 2025 − 2024 by month (labels include % change).</div>
-    </div>
-  </section>
-
-  <!-- Profit projections -->
-  <section class="card">
-    <div style="display:flex;flex-wrap:wrap;gap:.75rem;align-items:end">
-      <h2 style="font-size:1.25rem;font-weight:700;margin:0">Profit Projection</h2>
-      <div>
-        <label class="soft" style="font-size:.9rem">Method</label>
-        <select id="selMethod" style="background:#0f172a;border:1px solid #334155;border-radius:.55rem;padding:.4rem .6rem;color:#e2e8f0">
-          <option value="current">Based on Current Profit % (reported)</option>
-          <option value="projected">Based on Projected Sales − Expenses (reported)</option>
-        </select>
+      <div class="flex gap-2 no-print">
+        <button id="downloadCsvBtn" class="px-3 py-2 rounded-xl chip">Download CSV</button>
+        <button onclick="window.print()" class="px-3 py-2 rounded-xl chip">Print</button>
       </div>
-      <label class="soft" style="font-size:.9rem;display:flex;align-items:center;gap:.4rem">
-        <input id="chkSavings" type="checkbox"> Add projected savings +$15,000 (Jul–Dec)
-      </label>
-      <span id="projNote" class="pill soft">—</span>
+    </header>
+
+    <!-- Quick Filters / Tags -->
+    <div class="flex flex-wrap gap-2 mb-6 no-print">
+      <span class="px-3 py-1 rounded-full text-sm chip">FY2024 vs FY2025</span>
+      <span class="px-3 py-1 rounded-full text-sm chip">Expenses & Profit</span>
+      <span class="px-3 py-1 rounded-full text-sm chip">Monthly View</span>
     </div>
-    <div class="grid-2" style="margin-top:.75rem">
-      <div><canvas id="lineProfit" height="130"></canvas></div>
-      <div><canvas id="barExpense" height="130"></canvas></div>
-    </div>
-  </section>
 
-  <!-- Table -->
-  <section class="card">
-    <h2 style="font-size:1.25rem;font-weight:700;margin:0 0 .5rem">Detail (click headers to sort)</h2>
-    <div style="max-height:360px;overflow:auto">
-      <table id="tbl">
-        <thead>
-          <tr>
-            <th data-sort="month">Month</th>
-            <th data-sort="s24" class="text-right">Sales 2024</th>
-            <th data-sort="s25" class="text-right">Sales 2025</th>
-            <th data-sort="delta" class="text-right">Δ (25−24)</th>
-            <th data-sort="pct" class="text-right">% Δ</th>
-            <th data-sort="exp" class="text-right">Expenses</th>
-            <th data-sort="p1" class="text-right">Profit (Current %)</th>
-            <th data-sort="p2" class="text-right">Profit (Proj S−E)</th>
-          </tr>
-        </thead>
-        <tbody id="tbody"></tbody>
-      </table>
-    </div>
-  </section>
+    <!-- KPIs -->
+    <section class="grid-auto mb-6">
+      <div class="card rounded-2xl p-4 shadow-soft">
+        <p class="text-sm opacity-70">Total 2025 Sales</p>
+        <p id="kpiSales2025" class="kpi text-2xl font-semibold">—</p>
+      </div>
+      <div class="card rounded-2xl p-4 shadow-soft">
+        <p class="text-sm opacity-70">Total 2024 Sales</p>
+        <p id="kpiSales2024" class="kpi text-2xl font-semibold">—</p>
+      </div>
+      <div class="card rounded-2xl p-4 shadow-soft">
+        <p class="text-sm opacity-70">YoY Sales Growth</p>
+        <p id="kpiYoY" class="kpi text-2xl font-semibold">—</p>
+      </div>
+      <div class="card rounded-2xl p-4 shadow-soft">
+        <p class="text-sm opacity-70">Total Expenses</p>
+        <p id="kpiExpenses" class="kpi text-2xl font-semibold">—</p>
+      </div>
+      <div class="card rounded-2xl p-4 shadow-soft">
+        <p class="text-sm opacity-70">Total Profit (Current)</p>
+        <p id="kpiProfitCurrent" class="kpi text-2xl font-semibold">—</p>
+      </div>
+      <div class="card rounded-2xl p-4 shadow-soft">
+        <p class="text-sm opacity-70">Total Profit (Projected)</p>
+        <p id="kpiProfitProj" class="kpi text-2xl font-semibold">—</p>
+      </div>
+      <div class="card rounded-2xl p-4 shadow-soft">
+        <p class="text-sm opacity-70">Avg Monthly 2025 Sales</p>
+        <p id="kpiAvg2025" class="kpi text-2xl font-semibold">—</p>
+      </div>
+    </section>
 
-  <footer class="soft" style="font-size:.75rem">
-    Paste a normal Google Sheets link, hit <b>Save URL</b>. It will auto-convert to CSV & refresh. Use <b>Manual Entry</b> anytime.
-  </footer>
-</div>
+    <!-- Charts -->
+    <section class="grid md:grid-cols-2 gap-4 mb-6">
+      <div class="card rounded-2xl p-4 shadow-soft">
+        <h3 class="font-medium mb-2">Sales — 2024 vs 2025</h3>
+        <canvas id="salesChart" height="200"></canvas>
+      </div>
+      <div class="card rounded-2xl p-4 shadow-soft">
+        <h3 class="font-medium mb-2">Expenses & Profit</h3>
+        <canvas id="profitChart" height="200"></canvas>
+      </div>
+    </section>
 
-<script>
-/* ===== status pill ===== */
-const $=id=>document.getElementById(id);
-function stamp(msg, ok=null){ const el=$('fetchStamp'); el.textContent=msg; if(ok===true){el.style.color='#bbf7d0';el.style.borderColor='#166534';} else if(ok===false){el.style.color='#fecaca';el.style.borderColor='#9f1239';} }
+    <!-- Data Table -->
+    <section class="card rounded-2xl p-4 shadow-soft mb-6">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-medium">Monthly Detail</h3>
+        <div class="no-print flex items-center gap-2">
+          <label class="text-sm opacity-80" for="search">Search</label>
+          <input id="search" type="text" placeholder="Type to filter…" class="px-3 py-1 rounded-lg bg-transparent outline-none border border-white/20" />
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="w-full text-sm">
+          <thead class="opacity-80">
+            <tr>
+              <th class="text-left p-2">Month</th>
+              <th class="text-right p-2">Sales 2024</th>
+              <th class="text-right p-2">Sales 2025</th>
+              <th class="text-right p-2">Expenses</th>
+              <th class="text-right p-2">Profit (Current)</th>
+              <th class="text-right p-2">Profit (Projected)</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </section>
 
-/* ===== config ===== */
-const LS_KEY='partner_brief_csv_url', LS_AUTO='partner_brief_auto_refresh';
+    <!-- Notes -->
+    <section class="grid md:grid-cols-3 gap-4">
+      <div class="card rounded-2xl p-4 shadow-soft md:col-span-2">
+        <h3 class="font-medium mb-2">Talking Points</h3>
+        <ul class="list-disc list-inside space-y-2 opacity-90">
+          <li>Context on YoY movement and the drivers by month.</li>
+          <li>Expense absorption and path to target margin.</li>
+          <li>Scenario delta: current vs projected.</li>
+        </ul>
+      </div>
+      <div class="card rounded-2xl p-4 shadow-soft">
+        <h3 class="font-medium mb-2">Owner Notes</h3>
+        <textarea id="notes" class="w-full h-32 bg-transparent border border-white/20 rounded-xl p-3" placeholder="Type your notes for the meeting…"></textarea>
+      </div>
+    </section>
+  </div>
 
-/* ===== helpers & data ===== */
-const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
-const money=(n,d=0)=>Number(n||0).toLocaleString(undefined,{style:'currency',currency:'USD',maximumFractionDigits:d});
-const sign=n=>(n>=0?'+':'')+money(n);
-const pctFmt=x=>isFinite(x)?((x>=0?'+':'')+x.toFixed(1)+'%'):'—';
-const normHead=h=>String(h||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+  <script>
+    // Embedded dataset generated from your CSV
+    const DATA = {"columns":["Month","Sales2024","Sales2025","Expenses","ProfitCurrentPct","ProfitProjectedSE"],"rows":[
+      ["January",168076.2,144619.72,144983.19,-363.47,-363.47],
+      ["February",177540.0,149778.6,148265.09,1513.51,1513.51],
+      ["March",189646.6,172845.74,156638.86,16206.88,16206.88],
+      ["April",175948.7,159293.52,163805.33,-4511.81,-4511.81],
+      ["May",181556.1,174489.45,169739.06,4750.39,4750.39],
+      ["June",172960.0,166570.4,171002.24,-4431.84,-4431.84],
+      ["July",169744.3,157909.2,156799.27,1109.93,1109.93],
+      ["August",172333.6,151816.85,156170.19,-4353.34,-4353.34],
+      ["September",168292.0,154964.64,154492.6,472.04,472.04],
+      ["October",173667.6,151709.5,152994.77,-1285.27,-1285.27],
+      ["November",177905.8,154291.03,156567.08,-2276.05,-2276.05],
+      ["December",193961.2,173076.15,168050.34,15025.81,15025.81]
+    ]};
 
-// Starter seed so the page renders before your link is saved
-let data={ s2024:[168076.2,177540,189646.6,175948.7,181556.1,187181.1,180416.7,179365.6,154514,161960.4,158570.3,166856.4],
-            s2025:[144619.72,149778.6,172845.74,159293.52,174489.45,156133.29,148160.23,157258.61,135469.99,141998.62,139026.35,146291.18],
-            expenses:[144983.19,148265.09,156638.86,163805.33,169739.06,148822.77,159760.13,159760.13,154606.58,159760.13,154606.58,159760.13],
-            profitCurrentPct:[-363.47,1513.51,16206.88,-4511.81,4750.39,7310.52,3958.24,4201.31,3619.2,3793.62,3714.22,3908.3],
-            profitProjectedSE:[-363.47,1513.51,16206.88,-4511.81,4750.39,7310.52,-11599.9,-2501.52,-19136.58,-17761.51,-15580.23,-13468.95],
-            addSavingsJulDec:15000, yearlyDeltaNote:'-$256,266.80 (from your sheet)', costPerDayNote:'$5,153.55 (avg reported)' };
+    const METRICS = {"Total_2025_Sales":1825365.30,"Total_2024_Sales":2081632.10,"YoY_Sales_Growth_Pct":-12.31,"Total_Expenses":1880507.98,"Total_Profit_Current":48100.91,"Total_Profit_Projected":-55142.67,"Avg_Monthly_2025_Sales":152113.78};
 
-/* Convert a normal Google Sheets “Share” link to a CSV export */
-function toCsvUrl(u){
-  try{
-    const url = new URL(u);
-    if (url.hostname.includes('docs.google.com') && url.pathname.includes('/spreadsheets/')) {
-      // /spreadsheets/d/<ID>/edit#gid=123456789
-      const m = url.pathname.match(/\/spreadsheets\/d\/([^/]+)/);
-      const id = m ? m[1] : null;
-      const gid = url.searchParams.get('gid') || (url.hash.match(/gid=(\d+)/)?.[1]) || '0';
-      if (id) return `https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=${gid}`;
+    const currency = (n)=> new Intl.NumberFormat(undefined,{style:'currency',currency:'USD',maximumFractionDigits:0}).format(n||0);
+    const num = (n)=> new Intl.NumberFormat(undefined,{maximumFractionDigits:2}).format(n||0);
+
+    function paintKPIs(){
+      document.getElementById('kpiSales2025').textContent = currency(METRICS.Total_2025_Sales);
+      document.getElementById('kpiSales2024').textContent = currency(METRICS.Total_2024_Sales);
+      const yoy = METRICS.YoY_Sales_Growth_Pct;
+      const el = document.getElementById('kpiYoY');
+      el.textContent = (yoy>0? '+':'') + yoy.toFixed(2) + '%';
+      el.classList.toggle('text-emerald-400', yoy>0);
+      el.classList.toggle('text-rose-400', yoy<0);
+      document.getElementById('kpiExpenses').textContent = currency(METRICS.Total_Expenses);
+      document.getElementById('kpiProfitCurrent').textContent = currency(METRICS.Total_Profit_Current);
+      const pc = document.getElementById('kpiProfitProj');
+      pc.textContent = currency(METRICS.Total_Profit_Projected);
+      pc.classList.toggle('text-rose-400', METRICS.Total_Profit_Projected<0);
+      document.getElementById('kpiAvg2025').textContent = currency(METRICS.Avg_Monthly_2025_Sales);
     }
-    return u; // already CSV or some other URL
-  }catch{ return u; }
-}
 
-/* CSV parsing */
-function parseCSV(text){
-  const rows=[]; let row=[],cur='',inQ=false;
-  for(let i=0;i<text.length;i++){
-    const c=text[i];
-    if(inQ){
-      if(c==='"'&&text[i+1]==='"'){cur+='"';i++;}
-      else if(c==='"'){inQ=false;}
-      else cur+=c;
-    }else{
-      if(c==='"'){inQ=true;}
-      else if(c===','){row.push(cur);cur='';}
-      else if(c==='\n'){row.push(cur);rows.push(row);row=[];cur='';}
-      else if(c!=='\r'){cur+=c;}
+    function buildTable(filter=''){
+      const body = document.getElementById('tableBody');
+      body.innerHTML = '';
+      const rows = DATA.rows.filter(r=> r[0].toLowerCase().includes(filter.toLowerCase()));
+      for(const r of rows){
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="p-2">${r[0]}</td>
+          <td class="p-2 text-right">${currency(r[1])}</td>
+          <td class="p-2 text-right">${currency(r[2])}</td>
+          <td class="p-2 text-right">${currency(r[3])}</td>
+          <td class="p-2 text-right ${r[4]<0?'text-rose-400':''}">${currency(r[4])}</td>
+          <td class="p-2 text-right ${r[5]<0?'text-rose-400':''}">${currency(r[5])}</td>`;
+        body.appendChild(tr);
+      }
     }
-  }
-  row.push(cur); rows.push(row);
-  return rows.filter(r=> r.some(x=> String(x).trim()!==''));
-}
-function toNumber(x){ const s=String(x??'').replace(/[\$,]/g,'').trim(); if(!s) return 0; const n=Number(s); return isFinite(n)?n:0; }
-function ingest(rows){
-  if(!rows.length) throw new Error('Empty CSV');
-  const head=rows[0].map(h=>normHead(h)), body=rows.slice(1);
-  const hasYear=head.includes('year'), hasMonth=head.includes('month');
-  const s24i=head.findIndex(h=>h.includes('sales')&&h.includes('2024'));
-  const s25i=head.findIndex(h=>h.includes('sales')&&h.includes('2025'));
-  const idx={year:head.indexOf('year'),month:head.indexOf('month'),sales:head.indexOf('sales'),
-    expenses:head.findIndex(h=>h==='expenses'||h==='totalexpenses'||h==='operatingexpenses'),
-    p1:head.findIndex(h=>h==='profitcurrentpct'||h==='profitcurrent'||h==='currentprofit'),
-    p2:head.findIndex(h=>h==='profitprojectedse'||h==='profitprojected'||h==='projectedsminuse')};
-  const s24=Array(12).fill(0), s25=Array(12).fill(0), exp=Array(12).fill(0), p1=Array(12).fill(0), p2=Array(12).fill(0);
-  function mIdx(name){ if(!name) return -1; const s=String(name).trim().toLowerCase().slice(0,3);
-    return ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'].indexOf(s); }
-  if(hasYear&&hasMonth&&idx.sales>=0){
-    body.forEach(r=>{ const yr=Number(r[idx.year]); const mi=mIdx(r[idx.month]); if(mi<0) return;
-      const sales=toNumber(r[idx.sales]); const ex=idx.expenses>=0?toNumber(r[idx.expenses]):0;
-      const q1=idx.p1>=0?toNumber(r[idx.p1]):0; const q2=idx.p2>=0?toNumber(r[idx.p2]):0;
-      if(yr===2024) s24[mi]=sales;
-      if(yr===2025){ s25[mi]=sales; exp[mi]=ex; p1[mi]=q1; p2[mi]=q2; }});
-  } else if(hasMonth&&s24i>=0&&s25i>=0){
-    body.forEach(r=>{ const mi=mIdx(r[head.indexOf('month')]); if(mi<0) return;
-      s24[mi]=toNumber(r[s24i]); s25[mi]=toNumber(r[s25i]);
-      if(idx.expenses>=0) exp[mi]=toNumber(r[idx.expenses]);
-      if(idx.p1>=0) p1[mi]=toNumber(r[idx.p1]);
-      if(idx.p2>=0) p2[mi]=toNumber(r[idx.p2]); });
-  } else {
-    throw new Error('Unrecognized columns.');
-  }
-  return {s24,s25,exp,p1,p2};
-}
 
-/* charts & table */
-let lineSales, barDelta, lineProfit, barExpense;
-function monthlyDelta(){ return data.s2025.map((v,i)=> v-(data.s2024[i]||0)); }
-function monthlyPct(){ return data.s2025.map((v,i)=>{const b=data.s2024[i]||0; return b?((v-b)/b)*100:0}); }
-function sum(a){ return a.reduce((x,y)=>x+Number(y||0),0); }
+    function buildCharts(){
+      const labels = DATA.rows.map(r=> r[0]);
+      const s2024 = DATA.rows.map(r=> r[1]);
+      const s2025 = DATA.rows.map(r=> r[2]);
+      const expenses = DATA.rows.map(r=> r[3]);
+      const profitCurr = DATA.rows.map(r=> r[4]);
+      const profitProj = DATA.rows.map(r=> r[5]);
 
-function draw(){
-  // KPIs
-  $('kYtd25').textContent=money(sum(data.s2025));
-  const d=sum(data.s2025)-sum(data.s2024);
-  $('kYtdDelta').textContent=sign(d);
-  $('kYtdPct').textContent=((sum(data.s2024)?(d/sum(data.s2024))*100:0)>=0?'+':'')+(sum(data.s2024)?(d/sum(data.s2024))*100:0).toFixed(2)+'%';
-  $('kYearDelta').textContent=data.yearlyDeltaNote||'—';
-  $('kCostPerDay').textContent=data.costPerDayNote||'—';
+      // Sales comparative
+      const ctx1 = document.getElementById('salesChart');
+      new Chart(ctx1, {
+        type:'line',
+        data:{ labels, datasets:[
+          { label:'Sales 2024', data:s2024, tension:.35 },
+          { label:'Sales 2025', data:s2025, tension:.35 }
+        ]},
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{labels:{color:'#e6edf3'}} }, scales:{ x:{ ticks:{ color:'#e6edf3' } }, y:{ ticks:{ color:'#e6edf3' } } } }
+      });
 
-  // Table
-  const TB=$('tbody'); TB.innerHTML='';
-  const del=monthlyDelta(), p=monthlyPct();
-  months.forEach((m,i)=>{ const tr=document.createElement('tr'); const cls=(del[i]>=0?'pos':'neg'); tr.innerHTML=`
-    <td>${m}</td>
-    <td class="text-right mono">${money(data.s2024[i]||0)}</td>
-    <td class="text-right mono">${money(data.s2025[i]||0)}</td>
-    <td class="text-right mono ${cls}">${sign(del[i]||0)}</td>
-    <td class="text-right mono ${cls}">${isFinite(p[i])?((p[i]>=0?'+':'')+p[i].toFixed(1)+'%'):'—'}</td>
-    <td class="text-right mono">${money(data.expenses[i]||0)}</td>
-    <td class="text-right mono">${money(data.profitCurrentPct[i]||0)}</td>
-    <td class="text-right mono">${money(data.profitProjectedSE[i]||0)}</td>`; TB.appendChild(tr); });
-
-  // Load Chart.js (two CDNs for resilience)
-  const ensureChart=()=>new Promise((resolve,reject)=>{
-    if(window.Chart) return resolve();
-    const s=document.createElement('script');
-    s.src='https://unpkg.com/chart.js@4.4.1/dist/chart.umd.min.js';
-    s.onload=resolve;
-    s.onerror=()=>{ const s2=document.createElement('script');
-      s2.src='https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js';
-      s2.onload=resolve; s2.onerror=reject; document.head.appendChild(s2); };
-    document.head.appendChild(s);
-  });
-
-  ensureChart().then(()=>{
-    [lineSales,barDelta,lineProfit,barExpense].forEach(c=>c&&c.destroy());
-    const ctx1=$('lineSales').getContext('2d');
-    const ctx2=$('barDelta').getContext('2d');
-    const ctx3=$('lineProfit').getContext('2d');
-    const ctx4=$('barExpense').getContext('2d');
-
-    lineSales=new Chart(ctx1,{type:'line',
-      data:{labels:months,datasets:[
-        {label:'2024 Sales',data:data.s2024,tension:.25},
-        {label:'2025 Sales',data:data.s2025,tension:.25}]},
-      options:{plugins:{legend:{labels:{color:'#cbd5e1'}}},
-        scales:{x:{ticks:{color:'#cbd5e1'}},
-                y:{ticks:{color:'#cbd5e1',callback:v=>'$'+Number(v).toLocaleString()},grid:{color:'rgba(203,213,225,.15)'}}}});
-
-    const deltas=monthlyDelta(), pcts=monthlyPct().map(x=>isFinite(x)?x:0);
-    barDelta=new Chart(ctx2,{type:'bar',
-      data:{labels:months.map((m,i)=>m+' ('+(pcts[i]>=0?'+':'')+pcts[i].toFixed(1)+'%)'),
-            datasets:[{label:'2025 − 2024',data:deltas}]},
-      options:{plugins:{legend:{labels:{color:'#cbd5e1'}}},
-        scales:{x:{ticks:{color:'#cbd5e1'}},
-                y:{ticks:{color:'#cbd5e1',callback:v=>(v>=0?'+':'')+'$'+Number(v).toLocaleString()},grid:{color:'rgba(203,213,225,.15)'}}}});
-
-    const method=$('selMethod').value, add=$('chkSavings').checked;
-    const pBase=(method==='current')?data.profitCurrentPct.slice():data.profitProjectedSE.slice();
-    if(add){ for(let i=6;i<12;i++) pBase[i]=(pBase[i]||0)+(data.addSavingsJulDec||0); }
-    lineProfit=new Chart(ctx3,{type:'line',
-      data:{labels:months,datasets:[{label:'Projected Profit',data:pBase,tension:.25}]},
-      options:{plugins:{legend:{labels:{color:'#cbd5e1'}}},
-        scales:{x:{ticks:{color:'#cbd5e1'}},
-                y:{ticks:{color:'#cbd5e1',callback:v=>(v>=0?'+':'')+'$'+Number(v).toLocaleString()},grid:{color:'rgba(203,213,225,.15)'}}}});
-
-    barExpense=new Chart(ctx4,{type:'bar',
-      data:{labels:months,datasets:[{label:'Expenses',data:data.expenses}]},
-      options:{plugins:{legend:{labels:{color:'#cbd5e1'}}},
-        scales:{x:{ticks:{color:'#cbd5e1'}},
-                y:{ticks:{color:'#cbd5e1',callback:v=>'$'+Number(v).toLocaleString()},grid:{color:'rgba(203,213,225,.15)'}}}});
-
-    $('projNote').textContent=(method==='current'?'Using “Current Profit %”':'Using “Projected Sales − Expenses”')+($('chkSavings').checked?' • +$15k Jul–Dec applied':'');
-    stamp('Rendered',true);
-  }).catch(e=>{ console.error(e); stamp('Error loading charts',false); });
-}
-
-/* ===== fetch / load ===== */
-async function refreshFromUrl(){
-  const url = $('csvUrl').value.trim();
-  if (!url) { stamp('No URL', false); return; }
-  try{
-    stamp('Fetching CSV…');
-    let csv;
-    if (url.startsWith('data:text/csv')) {
-      csv = decodeURIComponent(url.split(',')[1] || '');
-    } else {
-      const res = await fetch(url, { cache:'no-store' });
-      if(!res.ok) throw new Error(`HTTP ${res.status}`);
-      csv = await res.text();
+      // Expenses & Profit
+      const ctx2 = document.getElementById('profitChart');
+      new Chart(ctx2, {
+        type:'bar',
+        data:{ labels, datasets:[
+          { label:'Expenses', data:expenses },
+          { label:'Profit (Current)', data:profitCurr },
+          { label:'Profit (Projected)', data:profitProj }
+        ]},
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{labels:{color:'#e6edf3'}} }, scales:{ x:{ ticks:{ color:'#e6edf3' } }, y:{ ticks:{ color:'#e6edf3' } } } }
+      });
     }
-    const rows = parseCSV(csv);
-    const p = ingest(rows);
-    data.s2024=p.s24; data.s2025=p.s25;
-    if (p.exp.some(x=>x!==0)) data.expenses=p.exp;
-    if (p.p1.some(x=>x!==0)) data.profitCurrentPct=p.p1;
-    if (p.p2.some(x=>x!==0)) data.profitProjectedSE=p.p2;
-    draw();
-    stamp('OK: Loaded '+new Date().toLocaleTimeString(), true);
-  }catch(e){
-    console.error(e);
-    stamp('Error: '+e.message, false);
-  }
-}
 
-/* ===== UI & init ===== */
-let autoTimer=null;
-function setAutoRefresh(on){
-  localStorage.setItem(LS_AUTO, on?'1':'0');
-  if(autoTimer){ clearInterval(autoTimer); autoTimer=null; }
-  if(on){ autoTimer=setInterval(refreshFromUrl,5*60*1000); }
-}
+    // CSV download of the embedded data
+    document.getElementById('downloadCsvBtn').addEventListener('click',()=>{
+      const head = DATA.columns.join(',');
+      const rows = DATA.rows.map(r=> r.join(','));
+      const csv = [head, ...rows].join('\n');
+      const blob = new Blob([csv], {type:'text/csv'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'partner-brief-data.csv';
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    });
 
-document.addEventListener('DOMContentLoaded', ()=>{
-  // Load saved URL (could be a data: URL or a converted CSV URL)
-  const saved = localStorage.getItem(LS_KEY) || '';
-  $('csvUrl').value = saved;
+    // Search filter
+    document.getElementById('search').addEventListener('input', (e)=> buildTable(e.target.value));
 
-  const auto = localStorage.getItem(LS_AUTO)==='1';
-  $('autoRefresh').checked = auto; setAutoRefresh(auto);
-
-  // Save URL: auto-convert Google link -> CSV, save, show converted URL, and refresh
-  $('btnSaveUrl').addEventListener('click', ()=>{
-    let url = $('csvUrl').value.trim();
-    if (!url) return alert('Paste your Google Sheets link first.');
-    url = toCsvUrl(url);
-    localStorage.setItem(LS_KEY, url);
-    $('csvUrl').value = url;
-    stamp('Saved URL → Refreshing…', true);
-    refreshFromUrl();
-  });
-
-  // Force using whatever is already in the input (handy for manual data URLs too)
-  $('btnFetch').addEventListener('click', refreshFromUrl);
-
-  // Use Manual Data: pull from the same key the manual page writes (a data: URL)
-  $('btnUseManual').addEventListener('click', ()=>{
-    const manual = localStorage.getItem(LS_KEY);
-    if (!manual || !manual.startsWith('data:text/csv')) {
-      alert('No manual data found yet. Go to “Manual Entry” first and click “Open Partner Brief with this data”.');
-      return;
-    }
-    $('csvUrl').value = manual;
-    stamp('Using Manual Data → Refreshing…', true);
-    refreshFromUrl();
-  });
-
-  $('autoRefresh').addEventListener('change', e=> setAutoRefresh(e.target.checked));
-
-  $('fileCsv').addEventListener('change', async e=>{
-    const f=e.target.files?.[0]; if(!f) return;
-    try{
-      const txt=await f.text();
-      const rows=parseCSV(txt);
-      const p=ingest(rows);
-      data.s2024=p.s24; data.s2025=p.s25;
-      if(p.exp.some(x=>x!==0)) data.expenses=p.exp;
-      if(p.p1.some(x=>x!==0)) data.profitCurrentPct=p.p1;
-      if(p.p2.some(x=>x!==0)) data.profitProjectedSE=p.p2;
-      draw(); stamp('Loaded from file',true);
-    }catch(err){ alert('Could not parse CSV: '+err.message); }
-  });
-
-  ['selMethod','chkSavings'].forEach(id=>document.getElementById(id).addEventListener('input', draw, {passive:true}));
-
-  // Initial render with seed data; if a saved URL exists, fetch it
-  draw();
-  if (saved) refreshFromUrl();
-});
-</script>
+    // Init
+    paintKPIs();
+    buildTable('');
+    buildCharts();
+  </script>
 </body>
 </html>
-
-
