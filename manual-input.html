@@ -1,1 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Amigo — Manual Data Entry (Feeds Partner Brief)</title>
+<style>
+  :root{ --bg:#0b1220; --panel:#0f172a; --ink:#e5e7eb; --soft:#93a4bb; --line:#334155; }
+  body{ background:var(--bg); color:var(--ink); font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial; margin:0 }
+  .wrap{ max-width:1100px; margin:0 auto; padding:24px }
+  .row{ display:flex; gap:8px; flex-wrap:wrap; align-items:end }
+  .card{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:18px; box-shadow:0 1px 2px rgba(0,0,0,.25) }
+  .btn{ padding:9px 12px; border:1px solid var(--line); color:var(--ink); background:#0b132a; border-radius:10px; cursor:pointer; text-decoration:none; display:inline-block }
+  .btn:hover{ background:#0d1733 } .btn.primary{ border-color:#2563eb } .btn.primary:hover{ background:rgba(37,99,235,.18) }
+  .soft{ color:var(--soft) } .kpi{ font-weight:800; font-size:18px; font-variant-numeric:tabular-nums }
+  input[type="text"]{ background:#0b1220; border:1px solid var(--line); color:var(--ink); border-radius:10px; padding:8px 10px; width:100% }
+  table{ width:100%; border-collapse:separate; border-spacing:0 } th,td{ padding:8px 10px; border-bottom:1px solid rgba(148,163,184,.2) } th{text-align:left;position:sticky;top:0;background:var(--panel)}
+  .scroll{ overflow:auto }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="row" style="justify-content:space-between;margin-bottom:12px">
+    <div>
+      <h1 style="margin:0 0 6px">Manual Data Entry → Partner Brief</h1>
+      <div class="soft">Type your monthly numbers below, then open the Partner Brief with this exact data.</div>
+    </div>
+    <div class="row">
+      <a href="./index.html" class="btn">← Back to Partner Brief</a>
+      <span id="status" class="btn" style="cursor:default;border-style:dashed">Ready</span>
+    </div>
+  </div>
 
+  <!-- quick KPIs -->
+  <div class="card" style="margin-bottom:16px">
+    <div class="row">
+      <div><span class="soft">FY 2024 Sales</span><div id="k24" class="kpi">—</div></div>
+      <div><span class="soft">FY 2025 Sales</span><div id="k25" class="kpi">—</div></div>
+      <div><span class="soft">FY 2025 − 2024</span><div id="kDelta" class="kpi">—</div></div>
+      <div><span class="soft">% Δ</span><div id="kPct" class="kpi">—</div></div>
+    </div>
+  </div>
+
+  <!-- table -->
+  <div class="card scroll" style="margin-bottom:16px">
+    <table id="tbl">
+      <thead>
+        <tr>
+          <th style="min-width:110px">Month</th>
+          <th style="min-width:160px">Sales 2024</th>
+          <th style="min-width:160px">Sales 2025</th>
+          <th style="min-width:160px">Expenses</th>
+          <th style="min-width:180px">Profit (Current %)</th>
+          <th style="min-width:180px">Profit (Proj S−E)</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div class="soft" style="font-size:12px;margin-top:6px">Tip: you can type values with $ or commas; we’ll clean them.</div>
+  </div>
+
+  <!-- actions -->
+  <div class="row" style="margin-bottom:16px">
+    <button id="btnOpen" class="btn primary">Open Partner Brief with this data</button>
+    <button id="btnDownload" class="btn">Download CSV</button>
+    <button id="btnCopyUrl" class="btn">Copy Data URL</button>
+    <button id="btnSave" class="btn">Save to Browser</button>
+    <button id="btnLoad" class="btn">Load Saved</button>
+    <button id="btnClear" class="btn">Clear</button>
+  </div>
+
+  <!-- optional paste area -->
+  <div class="card">
+    <div class="soft" style="margin-bottom:8px">Paste CSV (optional) — same headers the Partner Brief expects:</div>
+    <textarea id="paste" rows="4" style="width:100%;background:#0b1220;border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:8px 10px"
+      placeholder="Month,Sales2024,Sales2025,Expenses,ProfitCurrentPct,ProfitProjectedSE&#10;January,168076.20,144619.72,144983.19,-363.47,-363.47&#10;..."></textarea>
+    <div class="row" style="margin-top:8px">
+      <button id="btnParse" class="btn">Load from CSV text</button>
+      <span class="soft">or just type in the table above.</span>
+    </div>
+  </div>
+</div>
+
+<script>
+const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const LS_CSV='manual_csv_v1';
+const LS_URL='partner_brief_csv_url'; // Partner Brief reads this key
+const PARTNER_URL='./index.html';
+
+const $=s=>document.querySelector(s);
+const money=n=>Number(n||0).toLocaleString(undefined,{style:'currency',currency:'USD',maximumFractionDigits:0});
+const clean=x=>String(x??'').replace(/[\$,]/g,'').trim();
+const num=x=>{const n=Number(clean(x)); return isFinite(n)?n:0};
+const csvEscape=s=>{s=String(s??''); return (/[",\n]/.test(s))?'"'+s.replace(/"/g,'""')+'"':s};
+function status(m){ $('#status').textContent=m }
+
+const TB=$('#tbl tbody');
+function buildTable(){ TB.innerHTML=''; MONTHS.forEach((m,i)=>{ const tr=document.createElement('tr'); tr.innerHTML=`
+  <td><input type="text" value="${m}" disabled></td>
+  <td><input type="text" inputmode="decimal" placeholder="0"></td>
+  <td><input type="text" inputmode="decimal" placeholder="0"></td>
+  <td><input type="text" inputmode="decimal" placeholder="0"></td>
+  <td><input type="text" inputmode="decimal" placeholder="0"></td>
+  <td><input type="text" inputmode="decimal" placeholder="0"></td>`; TB.appendChild(tr); }); }
+buildTable();
+
+function gather(){ const rows=[]; TB.querySelectorAll('tr').forEach(tr=>{ const t=tr.querySelectorAll('td input'); rows.push({ m:t[0].value, s24:num(t[1].value), s25:num(t[2].value), exp:num(t[3].value), p1:num(t[4].value), p2:num(t[5].value) }); }); return rows; }
+function fill(rows){ TB.querySelectorAll('tr').forEach((tr,i)=>{ const r=rows[i]||{}; const t=tr.querySelectorAll('td input'); t[1].value=r.s24??''; t[2].value=r.s25??''; t[3].value=r.exp??''; t[4].value=r.p1??''; t[5].value=r.p2??''; }); recalc(); }
+function recalc(){ const rows=gather(); const sum=k=>rows.reduce((a,r)=>a+(r[k]||0),0); const y24=sum('s24'), y25=sum('s25'); const d=y25-y24; const pct=y24?(d/y24)*100:0;
+  $('#k24').textContent=money(y24); $('#k25').textContent=money(y25); $('#kDelta').textContent=(d>=0?'+':'')+money(Math.abs(d)); $('#kPct').textContent=(pct>=0?'+':'')+pct.toFixed(2)+'%'; }
+TB.addEventListener('input',e=>{ if(e.target.matches('input')) recalc(); });
+
+function toCSV(){ const rows=gather(); const head='Month,Sales2024,Sales2025,Expenses,ProfitCurrentPct,ProfitProjectedSE';
+  const body=rows.map(r=>[csvEscape(r.m),r.s24,r.s25,r.exp,r.p1,r.p2].join(',')).join('\n'); return head+'\n'+body+'\n'; }
+
+$('#btnDownload').addEventListener('click',()=>{ const blob=new Blob([toCSV()],{type:'text/csv;charset=utf-8'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='partner-brief-data.csv'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1500); });
+$('#btnCopyUrl').addEventListener('click',async()=>{ const url='data:text/csv;charset=utf-8,'+encodeURIComponent(toCSV()); await navigator.clipboard.writeText(url); status('Data URL copied'); });
+$('#btnSave').addEventListener('click',()=>{ localStorage.setItem(LS_CSV,toCSV()); status('Saved to browser'); });
+$('#btnLoad').addEventListener('click',()=>{ const csv=localStorage.getItem(LS_CSV); if(!csv) return status('Nothing saved yet'); const lines=csv.trim().split(/\r?\n/).slice(1);
+  const rows=MONTHS.map((m,i)=>{ const p=(lines[i]||'').split(','); return {m, s24:+clean(p[1])||0, s25:+clean(p[2])||0, exp:+clean(p[3])||0, p1:+clean(p[4])||0, p2:+clean(p[5])||0}; }); fill(rows); status('Loaded saved data'); });
+$('#btnClear').addEventListener('click',()=>{ buildTable(); status('Cleared'); });
+
+$('#btnParse').addEventListener('click',()=>{ const txt=$('#paste').value.trim(); if(!txt) return; const lines=txt.split(/\r?\n/); const body=(lines[0].toLowerCase().includes('month'))?lines.slice(1):lines;
+  const rows=MONTHS.map((m,i)=>{ const parts=(body[i]||'').split(','); return {m, s24:+clean(parts[1])||0, s25:+clean(parts[2])||0, exp:+clean(parts[3])||0, p1:+clean(parts[4])||0, p2:+clean(parts[5])||0}; }); fill(rows); status('CSV parsed'); });
+
+$('#btnOpen').addEventListener('click',()=>{ const dataUrl='data:text/csv;charset=utf-8,'+encodeURIComponent(toCSV()); localStorage.setItem(LS_URL,dataUrl); status('Saved data URL → opening Partner Brief…'); window.location.href=PARTNER_URL+'?v=manual'; });
+
+recalc();
+</script>
+</body>
+</html>
