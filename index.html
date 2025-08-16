@@ -5,11 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Amigo Brainerd — 2024 vs 2025 Partner Brief (Live)</title>
 <link rel="icon" href="data:;base64,=">
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
   :root{ --ink:#e5e7eb; --ink-soft:#a3b0c2; --panel:rgba(15,23,42,.78); --line:rgb(51,65,85); }
-  body{ background:#0b1220; color:var(--ink); }
+  body{ background:#0b1220; color:var(--ink); font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,"Helvetica Neue",Arial,"Apple Color Emoji","Segoe UI Emoji"; }
   .card{ background:var(--panel); border-radius:1rem; padding:1rem 1.25rem; box-shadow:0 1px 2px rgba(0,0,0,.3); }
   .kpi{ font-size:1.6rem; font-weight:800; line-height:1.1; font-variant-numeric:tabular-nums; }
   .pill{ border:1px solid var(--line); padding:.2rem .5rem; border-radius:999px; font-size:.75rem; white-space:nowrap; }
@@ -19,43 +17,47 @@
   .btn.primary:hover{ background:rgba(37,99,235,.15); }
   .soft{ color:var(--ink-soft); }
   .mono{ font-variant-numeric:tabular-nums; }
-  .grid-3{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1rem; }
   .grid-2{ display:grid; grid-template-columns:1.1fr .9fr; gap:1rem; }
   .grid-4{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:1rem; }
-  @media (max-width:1200px){ .grid-2,.grid-3,.grid-4{ grid-template-columns:1fr; } }
+  @media (max-width:1200px){ .grid-2,.grid-4{ grid-template-columns:1fr; } }
   table{ width:100%; border-collapse:separate; border-spacing:0; }
   th,td{ padding:.5rem .6rem; border-bottom:1px solid rgba(148,163,184,.2); }
   th{ text-align:left; color:#cbd5e1; background:rgba(15,23,42,.95); position:sticky; top:0; z-index:1; }
   td.text-right{ text-align:right; }
   .pos{ color:#86efac; } .neg{ color:#fca5a5; }
+  .wrap{ max-width:72rem; margin:0 auto; padding:1.5rem; }
   @media print{
     .noprint{ display:none !important; }
     body{ background:#fff; color:#111827; }
     .card{ background:#fff; border:1px solid #e5e7eb; box-shadow:none; }
   }
+  /* simple utility stand-ins (since Tailwind loads after) */
+  .flex{display:flex}.items-start{align-items:flex-start}.items-end{align-items:flex-end}.justify-between{justify-content:space-between}.gap-2{gap:.5rem}.gap-3{gap:.75rem}.mb-2{margin-bottom:.5rem}.space-y-6>*+*{margin-top:1.5rem}
+  .text-xl{font-size:1.25rem;font-weight:700}.text-3xl{font-size:1.875rem;font-weight:800}
+  .hidden{display:none}
 </style>
 </head>
 <body class="min-h-screen">
-<div class="max-w-7xl mx-auto p-6 space-y-6">
+<div class="wrap space-y-6">
 
   <!-- Header -->
-  <header class="flex flex-wrap items-start justify-between gap-3">
+  <header class="flex items-start justify-between gap-3">
     <div>
-      <h1 class="text-3xl font-bold">Amigo Brainerd — Partner Brief</h1>
+      <h1 class="text-3xl">Amigo Brainerd — Partner Brief</h1>
       <p class="soft">Live 2024 vs 2025 sales, deltas, and profit projections. Pulls straight from your published Google Sheet.</p>
     </div>
-    <div class="noprint flex flex-wrap gap-2 items-end">
+    <div class="noprint" style="display:flex;flex-wrap:wrap;gap:.5rem;align-items:end">
       <div>
-        <label class="soft text-xs">Google Sheet CSV URL</label>
+        <label class="soft" style="font-size:.75rem;display:block">Google Sheet CSV URL</label>
         <input id="csvUrl" style="width:420px;background:#0f172a;border:1px solid #334155;border-radius:.55rem;padding:.4rem .6rem;color:#e2e8f0;">
       </div>
       <button id="btnSaveUrl" class="btn">Save URL</button>
       <button id="btnFetch" class="btn primary">Refresh Now</button>
-      <label class="soft text-xs flex items-center gap-2">
+      <label class="soft" style="font-size:.75rem;display:flex;align-items:center;gap:.4rem">
         <input id="autoRefresh" type="checkbox"> Auto-refresh every 5 min
       </label>
       <span id="fetchStamp" class="pill soft">Loading…</span>
-      <span class="soft text-xs">• or </span>
+      <span class="soft" style="font-size:.75rem">• or </span>
       <label class="btn" for="fileCsv" style="cursor:pointer;">Upload CSV</label>
       <input id="fileCsv" type="file" accept=".csv,text/csv" class="hidden">
       <button class="btn" onclick="window.print()">Print</button>
@@ -65,71 +67,67 @@
   <!-- KPI row -->
   <section class="grid-4">
     <div class="card">
-      <div class="soft text-sm">YTD Sales 2025</div>
+      <div class="soft" style="font-size:.9rem">YTD Sales 2025</div>
       <div id="kYtd25" class="kpi mono">—</div>
-      <div class="soft text-xs"><span id="ytdMonths">Jan–Dec</span></div>
+      <div class="soft" style="font-size:.75rem"><span id="ytdMonths">Jan–Dec</span></div>
     </div>
     <div class="card">
-      <div class="soft text-sm">YTD Δ vs 2024</div>
+      <div class="soft" style="font-size:.9rem">YTD Δ vs 2024</div>
       <div id="kYtdDelta" class="kpi mono">—</div>
-      <div id="kYtdPct" class="soft text-xs">—</div>
+      <div id="kYtdPct" class="soft" style="font-size:.75rem">—</div>
     </div>
     <div class="card">
-      <div class="soft text-sm">Yearly Δ (projected @ same pace)</div>
+      <div class="soft" style="font-size:.9rem">Yearly Δ (projected @ same pace)</div>
       <div id="kYearDelta" class="kpi mono">—</div>
-      <div class="soft text-xs">From your sheet projection</div>
+      <div class="soft" style="font-size:.75rem">From your sheet projection</div>
     </div>
     <div class="card">
-      <div class="soft text-sm">Cost / Day (avg)</div>
+      <div class="soft" style="font-size:.9rem">Cost / Day (avg)</div>
       <div id="kCostPerDay" class="kpi mono">—</div>
-      <div class="soft text-xs">As reported</div>
+      <div class="soft" style="font-size:.75rem">As reported</div>
     </div>
   </section>
 
   <!-- Charts row -->
   <section class="grid-2">
     <div class="card">
-      <h2 class="text-xl font-semibold mb-2">Sales — 2024 vs 2025</h2>
+      <h2 class="text-xl mb-2">Sales — 2024 vs 2025</h2>
       <canvas id="lineSales" height="130"></canvas>
-      <div class="soft text-xs mt-2">Monthly totals, side-by-side.</div>
+      <div class="soft" style="font-size:.75rem;margin-top:.5rem">Monthly totals, side-by-side.</div>
     </div>
     <div class="card">
-      <h2 class="text-xl font-semibold mb-2">Monthly Δ vs 2024</h2>
+      <h2 class="text-xl mb-2">Monthly Δ vs 2024</h2>
       <canvas id="barDelta" height="130"></canvas>
-      <div class="soft text-xs mt-2">Bars show 2025 − 2024 by month (labels include % change).</div>
+      <div class="soft" style="font-size:.75rem;margin-top:.5rem">Bars show 2025 − 2024 by month (labels include % change).</div>
     </div>
   </section>
 
   <!-- Profit projections -->
   <section class="card">
-    <div class="flex flex-wrap items-end gap-3">
-      <h2 class="text-xl font-semibold">Profit Projection</h2>
+    <div style="display:flex;flex-wrap:wrap;gap:.75rem;align-items:end">
+      <h2 class="text-xl">Profit Projection</h2>
       <div>
-        <label class="soft text-sm">Method</label>
+        <label class="soft" style="font-size:.9rem">Method</label>
         <select id="selMethod" style="background:#0f172a;border:1px solid #334155;border-radius:.55rem;padding:.4rem .6rem;color:#e2e8f0;">
           <option value="current">Based on Current Profit % (reported)</option>
           <option value="projected">Based on Projected Sales − Expenses (reported)</option>
         </select>
       </div>
-      <label class="soft text-sm flex items-center gap-2">
+      <label class="soft" style="font-size:.9rem;display:flex;align-items:center;gap:.4rem">
         <input id="chkSavings" type="checkbox"> Add projected savings +$15,000 (Jul–Dec)
       </label>
       <span id="projNote" class="pill soft">—</span>
     </div>
-    <div class="grid-2 mt-3">
-      <div>
-        <canvas id="lineProfit" height="130"></canvas>
-      </div>
-      <div>
-        <canvas id="barExpense" height="130"></canvas>
-      </div>
+    <div class="grid-2" style="margin-top:.75rem">
+      <div><canvas id="lineProfit" height="130"></canvas></div>
+      <div><canvas id="barExpense" height="130"></canvas></div>
     </div>
   </section>
 
-  <!-- Table -->
+  <!-- Detail table -->
   <section class="card">
-    <h2 class="text-xl font-semibold mb-2">Detail (click headers to sort)</h2>
-    <div class="overflow-auto" style="max-height:360px;">
+    <h2 class="text-xl mb-2">Detail (click headers to sort)</h2>
+    <div style="max-height:360px;overflow:auto">
       <table id="tbl">
         <thead>
           <tr>
@@ -148,332 +146,14 @@
     </div>
   </section>
 
-  <footer class="soft text-xs">
-    Your Google Sheet URL is embedded; page fetches on load. You can override the URL (top-right), save it in this browser, and enable auto-refresh.
+  <footer class="soft" style="font-size:.75rem">
+    Your Google Sheet URL is embedded or can be overridden (top-right). Use <b>Save URL</b> and optionally enable auto-refresh.
   </footer>
 </div>
 
-<script>
-/* ===== Config: your published CSV URL (change if you switch sheets) ===== */
-const DEFAULT_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRLbxvVjoOhjREgdbrH2OBW1b6HIviclFegTb8CoSOJR3Okwg_nb40qzJ8QKhf_BWQRWWuzWWv9Fw3w/pub?gid=0&single=true&output=csv";
-const LS_KEY = 'partner_brief_csv_url';
-const LS_AUTO = 'partner_brief_auto_refresh';
-
-/* ===== Helpers ===== */
-const $ = id=>document.getElementById(id);
-const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-const money = (n,d=0)=>Number(n||0).toLocaleString(undefined,{style:'currency',currency:'USD',maximumFractionDigits:d});
-const sign = n => (n>=0?'+':'') + money(n);
-const pctFmt = x => (isFinite(x)? ((x>=0?'+':'')+x.toFixed(1)+'%') : '—');
-const normHead = h => String(h||'').toLowerCase().replace(/[^a-z0-9]/g,'');
-
-/* ===== Data seed (used while first fetch runs / as fallback) ===== */
-let data = {
-  s2024: [168076.20,177540.00,189646.60,175948.70,181556.10,187181.10,180416.70,179365.60,154514.00,161960.40,158570.30,166856.40],
-  s2025: [144619.72,149778.60,172845.74,159293.52,174489.45,156133.29,148160.23,157258.61,135469.99,141998.62,139026.35,146291.18],
-  expenses: [144983.19,148265.09,156638.86,163805.33,169739.06,148822.77,159760.13,159760.13,154606.58,159760.13,154606.58,159760.13],
-  profitCurrentPct: [-363.47,1513.51,16206.88,-4511.81,4750.39,7310.52,3958.24,4201.31,3619.20,3793.62,3714.22,3908.30],
-  profitProjectedSE: [-363.47,1513.51,16206.88,-4511.81,4750.39,7310.52,-11599.90,-2501.52,-19136.58,-17761.51,-15580.23,-13468.95],
-  addSavingsJulDec: 15000,
-  yearlyDeltaNote: '-$256,266.80 (from your sheet)',
-  costPerDayNote: '$5,153.55 (avg reported)'
-};
-
-/* ===== Computations ===== */
-function monthlyDelta(){ return data.s2025.map((v,i)=> v - (data.s2024[i]||0)); }
-function monthlyPct(){ return data.s2025.map((v,i)=>{ const b=data.s2024[i]||0; return b? ((v-b)/b)*100 : 0; }); }
-function sum(arr){ return arr.reduce((a,b)=>a+Number(b||0),0); }
-
-/* ===== Charts ===== */
-let lineSales, barDelta, lineProfit, barExpense;
-
-function drawCharts(){
-  const ctx1 = $('lineSales').getContext('2d');
-  const ctx2 = $('barDelta').getContext('2d');
-  const ctx3 = $('lineProfit').getContext('2d');
-  const ctx4 = $('barExpense').getContext('2d');
-
-  [lineSales,barDelta,lineProfit,barExpense].forEach(c=> c && c.destroy());
-
-  lineSales = new Chart(ctx1,{
-    type:'line',
-    data:{ labels: months, datasets:[
-      {label:'2024 Sales', data:data.s2024, tension:.25},
-      {label:'2025 Sales', data:data.s2025, tension:.25}
-    ]},
-    options:{ plugins:{legend:{labels:{color:'#cbd5e1'}}},
-      scales:{ x:{ ticks:{color:'#cbd5e1'}},
-               y:{ ticks:{color:'#cbd5e1', callback:v=>'$'+Number(v).toLocaleString()},
-                   grid:{color:'rgba(203,213,225,.15)'} } }
-  });
-
-  const deltas = monthlyDelta();
-  const pcts = monthlyPct().map(x=> (isFinite(x)? x:0));
-  barDelta = new Chart(ctx2,{
-    type:'bar',
-    data:{ labels: months.map((m,i)=> m+' ('+(pcts[i]>=0?'+':'')+pcts[i].toFixed(1)+'%)'),
-           datasets:[{ label:'2025 − 2024', data:deltas }]},
-    options:{ plugins:{legend:{labels:{color:'#cbd5e1'}}},
-      scales:{ x:{ ticks:{color:'#cbd5e1'}},
-               y:{ ticks:{color:'#cbd5e1', callback:v=> (v>=0?'+':'')+'$'+Number(v).toLocaleString()},
-                   grid:{color:'rgba(203,213,225,.15)'} } }
-  });
-
-  const method = $('selMethod').value;
-  const addSave = $('chkSavings').checked;
-  const pBase = (method==='current') ? data.profitCurrentPct.slice() : data.profitProjectedSE.slice();
-  if(addSave){ for(let i=6;i<12;i++){ pBase[i] = (pBase[i]||0) + (data.addSavingsJulDec||0); } }
-  lineProfit = new Chart(ctx3,{
-    type:'line',
-    data:{ labels: months, datasets:[{label:'Projected Profit', data:pBase, tension:.25}] },
-    options:{ plugins:{legend:{labels:{color:'#cbd5e1'}}},
-      scales:{ x:{ ticks:{color:'#cbd5e1'}},
-               y:{ ticks:{color:'#cbd5e1', callback:v=> (v>=0?'+':'')+'$'+Number(v).toLocaleString()},
-                   grid:{color:'rgba(203,213,225,.15)'} } }
-  });
-
-  barExpense = new Chart(ctx4,{
-    type:'bar',
-    data:{ labels: months, datasets:[{label:'Expenses', data:data.expenses}] },
-    options:{ plugins:{legend:{labels:{color:'#cbd5e1'}}},
-      scales:{ x:{ ticks:{color:'#cbd5e1'}},
-               y:{ ticks:{color:'#cbd5e1', callback:v=>'$'+Number(v).toLocaleString()},
-                   grid:{color:'rgba(203,213,225,.15)'} } }
-  });
-
-  $('projNote').textContent =
-    (method==='current' ? 'Using “Current Profit %” series' : 'Using “Projected Sales − Expenses” series') +
-    (addSave? ' • +$15k Jul–Dec applied':'');
-}
-
-/* ===== Table & KPIs ===== */
-function drawTable(){
-  const TB = $('tbody'); TB.innerHTML='';
-  const del = monthlyDelta(), p = monthlyPct();
-  months.forEach((m,i)=>{
-    const tr = document.createElement('tr');
-    const cls = (del[i]>=0?'pos':'neg');
-    tr.innerHTML = `
-      <td>${m}</td>
-      <td class="text-right mono">${money(data.s2024[i]||0)}</td>
-      <td class="text-right mono">${money(data.s2025[i]||0)}</td>
-      <td class="text-right mono ${cls}">${sign(del[i]||0)}</td>
-      <td class="text-right mono ${cls}">${pctFmt(p[i])}</td>
-      <td class="text-right mono">${money(data.expenses[i]||0)}</td>
-      <td class="text-right mono">${money(data.profitCurrentPct[i]||0)}</td>
-      <td class="text-right mono">${money(data.profitProjectedSE[i]||0)}</td>
-    `;
-    TB.appendChild(tr);
-  });
-}
-function setKPIs(){
-  const y25 = sum(data.s2025);
-  const y24 = sum(data.s2024);
-  const delta = y25 - y24;
-  const pct = y24? ((delta/y24)*100) : 0;
-
-  $('kYtd25').textContent = money(y25,0);
-  $('kYtdDelta').textContent = sign(delta);
-  $('kYtdPct').textContent = (pct>=0?'+':'') + pct.toFixed(2) + '%';
-  $('kYearDelta').textContent = data.yearlyDeltaNote || '—';
-  $('kCostPerDay').textContent = data.costPerDayNote || '—';
-  $('ytdMonths').textContent = 'Jan–Dec';
-}
-
-/* ===== CSV parsing ===== */
-function parseCSV(text){
-  const rows = []; let row=[], cur='', inQ=false;
-  for(let i=0;i<text.length;i++){
-    const c=text[i];
-    if(inQ){
-      if(c==='"' && text[i+1]==='"'){ cur+='"'; i++; }
-      else if(c==='"'){ inQ=false; }
-      else cur+=c;
-    }else{
-      if(c==='"'){ inQ=true; }
-      else if(c===','){ row.push(cur); cur=''; }
-      else if(c==='\n'){ row.push(cur); rows.push(row); row=[]; cur=''; }
-      else if(c!=='\r'){ cur+=c; }
-    }
-  }
-  row.push(cur); rows.push(row);
-  return rows.filter(r=> r.some(x=> String(x).trim()!==''));
-}
-function toNumber(x){
-  if(x==null) return 0;
-  const s = String(x).replace(/[\$,]/g,'').trim();
-  if(s==='') return 0;
-  const n = Number(s);
-  return isFinite(n)? n : 0;
-}
-
-/* ===== Accept two shapes: Long or Wide ===== */
-function ingest(rows){
-  if(!rows.length) throw new Error('Empty CSV');
-  const head = rows[0].map(h=>normHead(h));
-  const body = rows.slice(1);
-
-  const hasYear = head.includes('year');
-  const hasMonth = head.includes('month');
-  const sales2024 = head.findIndex(h=> h.includes('sales') && h.includes('2024'));
-  const sales2025 = head.findIndex(h=> h.includes('sales') && h.includes('2025'));
-  const idx = {
-    year: head.indexOf('year'),
-    month: head.indexOf('month'),
-    sales: head.indexOf('sales'),
-    expenses: head.findIndex(h=> h==='expenses' || h==='totalexpenses' || h==='operatingexpenses'),
-    p1: head.findIndex(h=> h==='profitcurrentpct' || h==='profitcurrent' || h==='currentprofit'),
-    p2: head.findIndex(h=> h==='profitprojectedse' || h==='profitprojected' || h==='projectedsminuse')
-  };
-
-  const s24 = Array(12).fill(0), s25 = Array(12).fill(0), exp = Array(12).fill(0), p1 = Array(12).fill(0), p2 = Array(12).fill(0);
-
-  function monthIdx(name){
-    if(!name) return -1;
-    const s = String(name).trim().toLowerCase().slice(0,3);
-    return ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'].indexOf(s);
-  }
-
-  if(hasYear && hasMonth && idx.sales>=0){
-    // Long/tidy
-    body.forEach(r=>{
-      const yr = Number(r[idx.year]);
-      const mi = monthIdx(r[idx.month]);
-      if(mi<0) return;
-      const sales = toNumber(r[idx.sales]);
-      const ex = idx.expenses>=0 ? toNumber(r[idx.expenses]) : 0;
-      const q1 = idx.p1>=0 ? toNumber(r[idx.p1]) : 0;
-      const q2 = idx.p2>=0 ? toNumber(r[idx.p2]) : 0;
-      if(yr===2024){ s24[mi]=sales; }
-      if(yr===2025){ s25[mi]=sales; exp[mi]=ex; p1[mi]=q1; p2[mi]=q2; }
-    });
-  } else if(hasMonth && sales2024>=0 && sales2025>=0){
-    // Wide/publish
-    body.forEach(r=>{
-      const mi = monthIdx(r[head.indexOf('month')]);
-      if(mi<0) return;
-      s24[mi] = toNumber(r[sales2024]);
-      s25[mi] = toNumber(r[sales2025]);
-      if(idx.expenses>=0) exp[mi] = toNumber(r[idx.expenses]);
-      if(idx.p1>=0) p1[mi] = toNumber(r[idx.p1]);
-      if(idx.p2>=0) p2[mi] = toNumber(r[idx.p2]);
-    });
-  } else {
-    throw new Error('Unrecognized columns. Expected (A) Year,Month,Sales… or (B) Month,Sales2024,Sales2025,…');
-  }
-
-  return { s24, s25, exp, p1, p2 };
-}
-
-/* ===== Live fetch from Google Sheets (published CSV) ===== */
-function setUrlStamp(ok,msg){
-  $('fetchStamp').textContent = (ok? 'OK: ' : 'Error: ') + msg;
-  $('fetchStamp').style.color = ok? '#bbf7d0' : '#fecaca';
-  $('fetchStamp').style.borderColor = ok? '#166534' : '#9f1239';
-}
-async function fetchCsv(url){
-  const res = await fetch(url, {cache:'no-store'});
-  if(!res.ok) throw new Error(`HTTP ${res.status}`);
-  return await res.text();
-}
-async function refreshFromUrl(){
-  const url = $('csvUrl').value.trim();
-  if(!url) { setUrlStamp(false,'No URL'); return; }
-  try{
-    setUrlStamp(true,'Fetching…');
-    const csv = await fetchCsv(url);
-    const rows = parseCSV(csv);
-    const parsed = ingest(rows);
-    data.s2024 = parsed.s24; data.s2025=parsed.s25;
-    if(parsed.exp.some(x=>x!==0)) data.expenses = parsed.exp;
-    if(parsed.p1.some(x=>x!==0)) data.profitCurrentPct = parsed.p1;
-    if(parsed.p2.some(x=>x!==0)) data.profitProjectedSE = parsed.p2;
-    setKPIs(); drawCharts(); drawTable();
-    setUrlStamp(true,'Loaded '+new Date().toLocaleTimeString());
-  }catch(e){
-    setUrlStamp(false, e.message);
-    console.error(e);
-  }
-}
-
-/* ===== CSV upload (manual fallback) ===== */
-$('fileCsv').addEventListener('change', async (e)=>{
-  const f = e.target.files?.[0]; if(!f) return;
-  try{
-    const txt = await f.text();
-    const rows = parseCSV(txt);
-    const parsed = ingest(rows);
-    data.s2024 = parsed.s24; data.s2025=parsed.s25;
-    if(parsed.exp.some(x=>x!==0)) data.expenses = parsed.exp;
-    if(parsed.p1.some(x=>x!==0)) data.profitCurrentPct = parsed.p1;
-    if(parsed.p2.some(x=>x!==0)) data.profitProjectedSE = parsed.p2;
-    setKPIs(); drawCharts(); drawTable();
-    setUrlStamp(true,'Loaded from file');
-  }catch(err){ alert('Could not parse CSV: '+err.message); }
-});
-
-/* ===== Sortable table ===== */
-let sortKey='month', sortDir=1;
-document.addEventListener('click', (ev)=>{
-  const th = ev.target.closest('th[data-sort]'); if(!th) return;
-  const key = th.dataset.sort;
-  if(sortKey===key) sortDir*=-1; else { sortKey=key; sortDir=1; }
-  const rows = months.map((m,i)=>({
-    month:m, s24:data.s2024[i]||0, s25:data.s2025[i]||0,
-    delta:(data.s2025[i]||0)-(data.s2024[i]||0),
-    pct:(data.s2024[i]? ((data.s2025[i]-data.s2024[i])/data.s2024[i])*100 : 0),
-    exp:data.expenses[i]||0, p1:data.profitCurrentPct[i]||0, p2:data.profitProjectedSE[i]||0
-  }));
-  rows.sort((a,b)=> (a[sortKey]-b[sortKey]) * sortDir);
-  const TB = $('tbody'); TB.innerHTML='';
-  rows.forEach(r=>{
-    const cls = (r.delta>=0?'pos':'neg');
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${r.month}</td>
-      <td class="text-right mono">${money(r.s24)}</td>
-      <td class="text-right mono">${money(r.s25)}</td>
-      <td class="text-right mono ${cls}">${sign(r.delta)}</td>
-      <td class="text-right mono ${cls}">${pctFmt(r.pct)}</td>
-      <td class="text-right mono">${money(r.exp)}</td>
-      <td class="text-right mono">${money(r.p1)}</td>
-      <td class="text-right mono">${money(r.p2)}</td>`;
-    TB.appendChild(tr);
-  });
-});
-
-/* ===== UI wiring ===== */
-$('btnSaveUrl').addEventListener('click', ()=>{
-  const url = $('csvUrl').value.trim();
-  if(!url) return alert('Paste a valid “Publish to web” CSV URL first.');
-  localStorage.setItem(LS_KEY, url);
-  setUrlStamp(true,'Saved URL');
-});
-$('btnFetch').addEventListener('click', refreshFromUrl);
-
-let autoTimer=null;
-function setAutoRefresh(on){
-  localStorage.setItem(LS_AUTO, on?'1':'0');
-  if(autoTimer){ clearInterval(autoTimer); autoTimer=null; }
-  if(on){ autoTimer = setInterval(refreshFromUrl, 5*60*1000); }
-}
-$('autoRefresh').addEventListener('change', e=> setAutoRefresh(e.target.checked));
-
-/* ===== Init ===== */
-function init(){
-  const savedUrl = localStorage.getItem(LS_KEY) || DEFAULT_CSV_URL;
-  $('csvUrl').value = savedUrl;
-  const auto = localStorage.getItem(LS_AUTO) === '1';
-  $('autoRefresh').checked = auto;
-  setAutoRefresh(auto);
-
-  // draw seeds immediately, then fetch live
-  setKPIs(); drawCharts(); drawTable();
-  refreshFromUrl();
-}
-window.addEventListener('DOMContentLoaded', init);
+<!-- External scripts (deferred) -->
 <script src="https://cdn.tailwindcss.com" defer></script>
 <script src="https://unpkg.com/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
-<script src="./app.js?v=6" defer></script>
+<script src="./app.js?v=8" defer></script>
 </body>
 </html>
